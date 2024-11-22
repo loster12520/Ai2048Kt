@@ -25,6 +25,8 @@ class Agent {
                 loss = Losses.MSLE,
                 metric = Metrics.MSLE
             )
+            it.copy()
+
         }
         (0..10000).forEach {
 
