@@ -20,11 +20,11 @@ class Game(
         }.let { this }
 
     fun isContinue() = panel.flatten().any { it == 0 } or
-            !panel.mapIndexed { x, col -> List(col.size) { y -> x to y } }.flatten().any {
+            panel.mapIndexed { x, col -> List(col.size) { y -> x to y } }.flatten().any {
                 if (it.first == 0) false else panel[it.first] == panel[it.first - 1] ||
-                        if (it.first < size - 1) false else panel[it.first] == panel[it.first + 1] ||
+                        if (it.first == size - 1) false else panel[it.first] == panel[it.first + 1] ||
                                 if (it.second == 0) false else panel[it.second] == panel[it.second - 1] ||
-                                        if (it.second < size - 1) false else panel[it.second] == panel[it.second + 1]
+                                        if (it.second == size - 1) false else panel[it.second] == panel[it.second + 1]
             }
 
     fun move(direction: Int): Game {
@@ -77,20 +77,21 @@ class Game(
         this
     }
 
-    fun panel() = panel.flatten()
+    fun panel() = panel.flatten().map { it.toFloat() }.toFloatArray()
 
     fun score() = panel.flatten().reduce { acc, list -> acc + list }
 
     fun step() = step
 }
 
+
 fun main() {
     Game().also {
         it.panel = mutableListOf(
-            mutableListOf(2, 2, 2, 2),
-            mutableListOf(2, 2, 2, 2),
-            mutableListOf(2, 2, 2, 2),
-            mutableListOf(2, 2, 2, 2),
+            mutableListOf(2, 4, 2, 4),
+            mutableListOf(4, 2, 4, 2),
+            mutableListOf(2, 4, 2, 4),
+            mutableListOf(4, 2, 4, 2),
         )
-    }.print().move(0).print()
+    }
 }
