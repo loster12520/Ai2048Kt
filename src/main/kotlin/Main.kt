@@ -1,3 +1,3 @@
 fun main() {
-    Agent().start()
+    Agent()
 }
