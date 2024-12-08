@@ -1,3 +1,5 @@
+package com.lignting.rl
+
 import kotlin.random.Random
 
 class Game(
@@ -12,6 +14,10 @@ class Game(
     private var lastPanel = panel
 
     private var step = 0
+
+    init {
+        newBlock()
+    }
 
     fun newBlock() = panel.mapIndexed { x, col -> col.mapIndexed { y, item -> (x to y) to item } }.flatten()
         .filter { it.second == 0 }.random().also {
@@ -40,6 +46,9 @@ class Game(
         if (isContinue())
             if (panel.flatten().any { it == 0 })
                 newBlock()
+
+        if (step > 10000)
+            println("success!!")
         return this
     }
 
@@ -77,21 +86,16 @@ class Game(
         this
     }
 
-    fun panel() = panel.flatten().map { it.toFloat() }.toFloatArray()
+    fun panel() = panel.flatten()
 
-    fun score() = panel.flatten().reduce { acc, list -> acc + list }
+    fun score(): Double {
+        return panel.flatten().reduce { acc, list -> acc + list }.toDouble()
+    }
 
     fun step() = step
 }
 
 
 fun main() {
-    Game().also {
-        it.panel = mutableListOf(
-            mutableListOf(2, 4, 2, 4),
-            mutableListOf(4, 2, 4, 2),
-            mutableListOf(2, 4, 2, 4),
-            mutableListOf(4, 2, 4, 2),
-        )
-    }
+    Game().print()
 }

@@ -7,8 +7,8 @@ import org.jetbrains.kotlinx.multik.ndarray.data.D2Array
 import org.jetbrains.kotlinx.multik.ndarray.operations.plus
 
 infix fun D2Array<Double>.addB(b: D1Array<Double>): D2Array<Double> {
-    require(shape[0] == b.shape[0])
+    require(shape[1] == b.shape[0])
     return this + mk.ndarray(b.data.map { value ->
-        (0..<shape[1]).map { value }
-    }.flatten(), shape[0], shape[1])
+        (0..<shape[0]).map { value }
+    }).transpose()
 }

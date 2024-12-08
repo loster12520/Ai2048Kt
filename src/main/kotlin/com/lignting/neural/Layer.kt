@@ -15,6 +15,7 @@ interface Layer {
     fun forward(input: D2Array<Double>): D2Array<Double>
     fun backward(input: D2Array<Double>, forwardOutput: D2Array<Double>, learningRate: Double = 0.001): D2Array<Double>
     fun copy(): Layer
+    fun info(): String
 }
 
 class Dense(
@@ -34,14 +35,16 @@ class Dense(
         input: D2Array<Double>, forwardOutput: D2Array<Double>, learningRate: Double
     ): D2Array<Double> {
         val m = input.shape[1]
-        val dWeight = (input dot forwardOutput.transpose()).map { 1.0 / m * it }
-        val dBias = mk.math.sumD2(input, 1).map { 1.0 / m * it }
-        weight -= dWeight
-        bias -= dBias
-        return weight.transpose() dot input
+        val dWeight = (forwardOutput.transpose() dot input).map { 1.0 / m * it }
+        val dBias = mk.math.sumD2(input, 0).map { 1.0 / m * it }
+        weight -= dWeight * learningRate
+        bias -= dBias * learningRate
+        return input dot weight.transpose()
     }
 
     override fun copy(): Layer = Dense(inputSize, outputSize, weight.deepCopy(), bias.deepCopy())
+    override fun info(): String =
+        "Dense()\t\t\tinput:$inputSize\t\t\toutput:$outputSize\t\t\t"
 }
 
 class Relu() : Layer {
@@ -52,14 +55,18 @@ class Relu() : Layer {
     ): D2Array<Double> = input.map { if (it > 0) 1.0 else 0.0 }
 
     override fun copy() = Relu()
+    override fun info(): String =
+        "Relu()"
 }
 
-class Sigmoid() : Layer {
-    override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { 1 / (1 + exp(-it)) }
+class Sigmoid(val zoom: Int = 1) : Layer {
+    override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { 1 / (1 + exp(-it / zoom)) }
 
     override fun backward(
         input: D2Array<Double>, forwardOutput: D2Array<Double>, learningRate: Double
-    ): D2Array<Double> = forwardOutput * input.map { it * (1 - it) }
+    ): D2Array<Double> = forwardOutput * input.map { it * (1 - it) / zoom }
 
     override fun copy() = Sigmoid()
+    override fun info(): String =
+        "Sigmoid()"
 }
