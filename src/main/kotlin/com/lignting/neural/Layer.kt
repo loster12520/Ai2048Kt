@@ -10,6 +10,7 @@ import org.jetbrains.kotlinx.multik.ndarray.operations.minus
 import org.jetbrains.kotlinx.multik.ndarray.operations.times
 import kotlin.math.exp
 import kotlin.math.max
+import kotlin.math.min
 
 interface Layer {
     fun forward(input: D2Array<Double>): D2Array<Double>
@@ -35,8 +36,8 @@ class Dense(
         input: D2Array<Double>, forwardOutput: D2Array<Double>, learningRate: Double
     ): D2Array<Double> {
         val m = input.shape[1]
-        val dWeight = (forwardOutput.transpose() dot input).map { 1.0 / m * it }
-        val dBias = mk.math.sumD2(input, 0).map { 1.0 / m * it }
+        val dWeight = (forwardOutput.transpose() dot input).map { 1.0 / m * it }.map { max(min(it, 100000.0),-100000.0) }
+        val dBias = mk.math.sumD2(input, 0).map { 1.0 / m * it }.map { max(min(it, 100000.0),-100000.0) }
         weight -= dWeight * learningRate
         bias -= dBias * learningRate
         return input dot weight.transpose()

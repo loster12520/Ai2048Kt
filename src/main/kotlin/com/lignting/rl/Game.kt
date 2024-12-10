@@ -19,7 +19,7 @@ class Game(
         newBlock()
     }
 
-    fun newBlock() = panel.mapIndexed { x, col -> col.mapIndexed { y, item -> (x to y) to item } }.flatten()
+    private fun newBlock() = panel.mapIndexed { x, col -> col.mapIndexed { y, item -> (x to y) to item } }.flatten()
         .filter { it.second == 0 }.random().also {
             panel[it.first.first][it.first.second] =
                 if (random.nextDouble() < odds) 2 else 4
@@ -27,10 +27,10 @@ class Game(
 
     fun isContinue() = panel.flatten().any { it == 0 } or
             panel.mapIndexed { x, col -> List(col.size) { y -> x to y } }.flatten().any {
-                if (it.first == 0) false else panel[it.first] == panel[it.first - 1] ||
-                        if (it.first == size - 1) false else panel[it.first] == panel[it.first + 1] ||
-                                if (it.second == 0) false else panel[it.second] == panel[it.second - 1] ||
-                                        if (it.second == size - 1) false else panel[it.second] == panel[it.second + 1]
+                if (it.first == 0) false else panel[it.first][it.second] == panel[it.first - 1][it.second] ||
+                        if (it.first == size - 1) false else panel[it.first][it.second] == panel[it.first + 1][it.second] ||
+                                if (it.second == 0) false else panel[it.first][it.second] == panel[it.first][it.second - 1] ||
+                                        if (it.second == size - 1) false else panel[it.first][it.second] == panel[it.first][it.second + 1]
             }
 
     fun move(direction: Int): Game {
@@ -89,7 +89,11 @@ class Game(
     fun panel() = panel.flatten()
 
     fun score(): Double {
-        return panel.flatten().reduce { acc, list -> acc + list }.toDouble()
+        return (
+                panel.flatten().reduce { acc, list -> acc + list }
+                        + step * 2
+                )
+            .toDouble()
     }
 
     fun step() = step
@@ -97,5 +101,15 @@ class Game(
 
 
 fun main() {
-    Game().print()
+    val game = Game().also {
+        it.panel =
+            mutableListOf(
+                mutableListOf(2, 4, 8, 16),
+                mutableListOf(2, 4, 8, 16),
+                mutableListOf(2, 4, 8, 16),
+                mutableListOf(2, 4, 8, 16),
+            )
+    }
+        .print()
+    println(game.isContinue())
 }

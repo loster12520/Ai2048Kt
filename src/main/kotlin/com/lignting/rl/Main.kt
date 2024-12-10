@@ -10,9 +10,9 @@ fun main() {
             Dense(10, 8),
             Relu(),
             Dense(8, 4),
-            Sigmoid(),
-            loss = Mse(),
-            learningRate = 0.0001
+            Relu(),
+            loss = Mae(),
+            learningRate = 0.001
         )
     ).start()
 }
