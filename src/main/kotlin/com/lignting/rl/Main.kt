@@ -20,5 +20,5 @@ fun main() {
             loss = Mse(),
             learningRate = 0.0001
         )
-    ).start().paintLoss().paintGame()
+    ).start().paintLoss().paintGame().paintReward().printGame()
 }

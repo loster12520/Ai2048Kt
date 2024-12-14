@@ -19,12 +19,12 @@ import kotlin.random.Random
 class Agent(val model: Model) {
     private var modelBuffer = model.copy()
     private var game = Game()
-    private val replayBuffer = ReplayBuffer(5000)
+    private val replayBuffer = ReplayBuffer(10000)
     private val lossList = mutableListOf<Pair<Int, Double>>()
     private val gameList = mutableListOf<Pair<Int, Double>>()
     private val rewardList = mutableListOf<Pair<Int, Double>>()
 
-    fun start(times: Int = 100000): Agent {
+    fun start(times: Int = 1000000): Agent {
         var gameCount = 0
         var useStep = 0
         (1 until times).forEach {
@@ -46,25 +46,27 @@ class Agent(val model: Model) {
             val directions = model.predict(mk.ndarray(panel.map { it.toDouble() }))
             val direction = directions.data.map { max(it, 0.01) }.mapIndexed { i, d -> i to d }
                 .let {
-                    if (Random.nextDouble() > 1 / (score + 1) * 20)
+                    if (Random.nextDouble() > 1 / (score + 1) * 100)
                         it.maxBy { it.second }.first
                     else
                         Random.nextInt(it.size)
                 }
             game.move(direction)
-            val reward = (game.reward() - score) - 10000 * (game.step() - step - 1)
+//            game.print()
+//            println(score)
+            val reward = (game.reward() - score) * (-10000 * (game.step() - step - 1))
             val maxNext = modelBuffer.predict(mk.ndarray(game.panel().map { it.toDouble() })).data.max()
             val update = directions.toMutableList()
             update[direction] = reward + 0.9 * maxNext
             replayBuffer.addReplay(panel, update)
             rewardList.add(it to reward)
-            val trainData = replayBuffer.getTrainData(50).let {
+            val trainData = replayBuffer.getTrainData(500).let {
                 mk.ndarray(it.map { it.input.map { it.toDouble() } }) to mk.ndarray(it.map { it.output })
             }
             val loss = model.fit(trainData.first, trainData.second, it / 10000 + 1, 0.000001)
             lossList.add(it to loss)
-            if (it % 1000 == 0)
-                println("loss: $loss in $it times")
+//            if (it % 1000 == 0)
+//                println("loss: $loss in $it times")
 
             if (it % 100 == 0) modelBuffer = model.copy()
         }
@@ -149,6 +151,11 @@ class Agent(val model: Model) {
         frame.contentPane.add(ChartPanel(chart))
         frame.pack()
         frame.isVisible = true
+        return this
+    }
+
+    fun printGame(): Agent {
+        game.print()
         return this
     }
 }
