@@ -13,10 +13,8 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation("org.jetbrains.kotlinx:multik-core:0.2.3")
     implementation("org.jetbrains.kotlinx:multik-default:0.2.3")
-    val kotlinDL = "0.5.2"
-    implementation ("org.jetbrains.kotlinx:kotlin-deeplearning-tensorflow:$kotlinDL")
-    implementation ("org.jetbrains.kotlinx:kotlin-deeplearning-onnx:$kotlinDL")
-    implementation ("org.jetbrains.kotlinx:kotlin-deeplearning-visualization:$kotlinDL")
+    implementation("org.jfree:jfreechart:1.5.3")
+    implementation("org.jfree:jcommon:1.0.24")
 }
 
 tasks.test {

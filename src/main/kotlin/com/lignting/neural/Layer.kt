@@ -1,5 +1,6 @@
 package com.lignting.neural
 
+import org.jetbrains.kotlinx.multik.api.d2array
 import org.jetbrains.kotlinx.multik.api.linalg.dot
 import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.rand
@@ -11,6 +12,7 @@ import org.jetbrains.kotlinx.multik.ndarray.operations.times
 import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 
 interface Layer {
     fun forward(input: D2Array<Double>): D2Array<Double>
@@ -36,8 +38,9 @@ class Dense(
         input: D2Array<Double>, forwardOutput: D2Array<Double>, learningRate: Double
     ): D2Array<Double> {
         val m = input.shape[1]
-        val dWeight = (forwardOutput.transpose() dot input).map { 1.0 / m * it }.map { max(min(it, 100000.0),-100000.0) }
-        val dBias = mk.math.sumD2(input, 0).map { 1.0 / m * it }.map { max(min(it, 100000.0),-100000.0) }
+        val dWeight =
+            (forwardOutput.transpose() dot input).map { 1.0 / m * it }.map { max(min(it, 100000.0), -100000.0) }
+        val dBias = mk.math.sumD2(input, 0).map { 1.0 / m * it }.map { max(min(it, 100000.0), -100000.0) }
         weight -= dWeight * learningRate
         bias -= dBias * learningRate
         return input dot weight.transpose()
@@ -70,4 +73,35 @@ class Sigmoid(val zoom: Int = 1) : Layer {
     override fun copy() = Sigmoid()
     override fun info(): String =
         "Sigmoid()"
+}
+
+class LeakyRelu(private val alpha: Double = 0.01) : Layer {
+    override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { if (it > 0) it else alpha * it }
+
+    override fun backward(
+        input: D2Array<Double>, forwardOutput: D2Array<Double>, learningRate: Double
+    ): D2Array<Double> = input.map { if (it > 0) 1.0 else alpha }
+
+    override fun copy() = LeakyRelu(alpha)
+    override fun info(): String =
+        "LeakyRelu()"
+}
+
+class Dropout(private val dropout: Double = 0.5) : Layer {
+    private var mask: D2Array<Double>? = null
+    override fun forward(input: D2Array<Double>): D2Array<Double> {
+        mask = mk.d2array(input.shape[0], input.shape[1]) { if (Random.nextDouble() > dropout) 1.0 else 0.0 }
+        return (input * mask!!).map { it * (1.0 / (1.0 - dropout)) }
+    }
+
+    override fun backward(
+        input: D2Array<Double>,
+        forwardOutput: D2Array<Double>,
+        learningRate: Double
+    ): D2Array<Double> =
+        (input * (mask ?: throw RuntimeException("backward before forward"))).map { it * (1.0 / (1.0 - dropout)) }
+
+    override fun copy() = Dropout(dropout)
+
+    override fun info() = "Dropout()\t\t\tdropout:$dropout"
 }

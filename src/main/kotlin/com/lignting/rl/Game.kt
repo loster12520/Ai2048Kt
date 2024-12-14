@@ -1,5 +1,7 @@
 package com.lignting.rl
 
+import kotlin.math.abs
+import kotlin.math.pow
 import kotlin.random.Random
 
 class Game(
@@ -22,7 +24,7 @@ class Game(
     private fun newBlock() = panel.mapIndexed { x, col -> col.mapIndexed { y, item -> (x to y) to item } }.flatten()
         .filter { it.second == 0 }.random().also {
             panel[it.first.first][it.first.second] =
-                if (random.nextDouble() < odds) 2 else 4
+                if (random.nextDouble() < odds) 1 else 2
         }.let { this }
 
     fun isContinue() = panel.flatten().any { it == 0 } or
@@ -42,13 +44,15 @@ class Game(
             3 -> direction(column = true, line = true)  // down
             else -> throw RuntimeException()
         }
-        step++
-        if (isContinue())
-            if (panel.flatten().any { it == 0 })
-                newBlock()
+        if (lastPanel.zip(panel).all { it.first.zip(it.second).all { it.first == it.second } }) {
+            step++
+            if (isContinue())
+                if (panel.flatten().any { it == 0 })
+                    newBlock()
+        }
 
-        if (step > 10000)
-            println("success!!")
+//        if (step > 10000)
+//            println("~~~~success!!")
         return this
     }
 
@@ -64,7 +68,7 @@ class Game(
                     else if (list.size == 0)
                         list += it
                     else if (it == list[list.size - 1])
-                        list[list.size - 1] *= 2
+                        list[list.size - 1] += 1
                     else
                         list += it
                 }
@@ -81,7 +85,14 @@ class Game(
             }
         }
 
-    fun print() = panel.forEach { println(it) }.let {
+    fun print() = panel.forEach {
+        println(
+            it
+//            .map { 2.0.pow(it).toInt() }
+        )
+    }.let {
+        println("score: ${score()}")
+        println("step: ${step}")
         println("--------------")
         this
     }
@@ -91,9 +102,25 @@ class Game(
     fun score(): Double {
         return (
                 panel.flatten().reduce { acc, list -> acc + list }
-                        + step * 2
                 )
             .toDouble()
+    }
+
+    @Suppress("NAME_SHADOWING")
+    fun reward(): Double {
+        val maxValue = panel.mapIndexed { x, it -> it.mapIndexed { y, value -> (x to y) to value } }
+            .flatten().maxBy { it.second }
+        return panel.mapIndexed { x, col -> col.mapIndexed { y, value -> value - abs(x - maxValue.first.first) - abs(y - maxValue.first.second) } }
+            .zip(panel)
+            .map {
+                it.first.zip(it.second).map {
+                    (
+                            if (it.first == it.second) 1
+                            else
+                                (it.second / (it.first - it.second))
+                            ).toDouble()
+                }
+            }.flatten().reduce { acc, list -> acc + list } + step * 10 + score()
     }
 
     fun step() = step
@@ -101,15 +128,7 @@ class Game(
 
 
 fun main() {
-    val game = Game().also {
-        it.panel =
-            mutableListOf(
-                mutableListOf(2, 4, 8, 16),
-                mutableListOf(2, 4, 8, 16),
-                mutableListOf(2, 4, 8, 16),
-                mutableListOf(2, 4, 8, 16),
-            )
-    }
-        .print()
-    println(game.isContinue())
+    val game = Game()
+        .print().move(0).print().move(0).print().move(0).print().move(0).print()
+    println(game.reward())
 }

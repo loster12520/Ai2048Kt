@@ -2,10 +2,16 @@ package com.lignting.neural
 
 import org.jetbrains.kotlinx.multik.ndarray.data.D1Array
 import org.jetbrains.kotlinx.multik.ndarray.data.D2Array
+import kotlin.math.min
 
 class Model(vararg layers: Layer, private val loss: Loss = Mse(), private val learningRate: Double = 0.01) {
     private val layerList = layers.toList()
-    fun fit(input: D2Array<Double>, output: D2Array<Double>, learningRateReductionRate: Int = 1): Double {
+    fun fit(
+        input: D2Array<Double>,
+        output: D2Array<Double>,
+        learningRateReductionRate: Int = 1,
+        learningRateDeclareDistance: Double = 0.00001
+    ): Double {
         val AList = mutableListOf(input)
         layerList.forEach { layer ->
             AList.add(layer.forward(AList.last()))
@@ -18,7 +24,16 @@ class Model(vararg layers: Layer, private val loss: Loss = Mse(), private val le
         }
         val DList = mutableListOf(loss.backward(AList.last(), output))
         layerList.zip(AList.dropLast(1)).asReversed().forEach { (layer, A) ->
-            DList.add(layer.backward(DList.last(), A, learningRate = learningRate / learningRateReductionRate))
+            DList.add(
+                layer.backward(
+                    DList.last(),
+                    A,
+                    learningRate = learningRate - min(
+                        learningRateReductionRate,
+                        (learningRate / learningRateDeclareDistance).toInt() - 1
+                    ) * learningRateDeclareDistance
+                )
+            )
         }
         return lossResult
     }
