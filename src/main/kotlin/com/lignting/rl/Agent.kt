@@ -24,13 +24,13 @@ class Agent(val model: Model) {
     private val gameList = mutableListOf<Pair<Int, Double>>()
     private val rewardList = mutableListOf<Pair<Int, Double>>()
 
-    fun start(times: Int = 1000000): Agent {
+    fun start(times: Int = 100000): Agent {
         var gameCount = 0
         var useStep = 0
         (1 until times).forEach {
             if (!game.isContinue()) {
                 gameCount++
-                if (gameCount % 100 == 0) {
+                if (gameCount % 10 == 0) {
                     println("$gameCount game failed at times $it")
                     game.print()
                     println("game use step: ${it - useStep}")
@@ -54,7 +54,7 @@ class Agent(val model: Model) {
             game.move(direction)
 //            game.print()
 //            println(score)
-            val reward = (game.reward() - score) * (-10000 * (game.step() - step - 1))
+            val reward = (game.reward() - score) + 100000.0 * (game.step() - step - 1)
             val maxNext = modelBuffer.predict(mk.ndarray(game.panel().map { it.toDouble() })).data.max()
             val update = directions.toMutableList()
             update[direction] = reward + 0.9 * maxNext

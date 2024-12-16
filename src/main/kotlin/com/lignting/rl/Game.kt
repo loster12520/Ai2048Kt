@@ -36,7 +36,8 @@ class Game(
             }
 
     fun move(direction: Int): Game {
-        lastPanel = panel.map { it.toMutableList() }.toMutableList()
+        if (isChange())
+            lastPanel = panel.map { it.toMutableList() }.toMutableList()
         when (direction) {
             0 -> direction(column = false, line = false)// left
             1 -> direction(column = false, line = true) // right
@@ -44,7 +45,7 @@ class Game(
             3 -> direction(column = true, line = true)  // down
             else -> throw RuntimeException()
         }
-        if (lastPanel.zip(panel).all { it.first.zip(it.second).all { it.first == it.second } }) {
+        if (isChange()) {
             step++
             if (isContinue())
                 if (panel.flatten().any { it == 0 })
@@ -55,6 +56,8 @@ class Game(
 //            println("~~~~success!!")
         return this
     }
+
+    private fun isChange() = !lastPanel.zip(panel).all { it.first.zip(it.second).all { it.first == it.second } }
 
     private fun direction(column: Boolean, line: Boolean) =
         panel
@@ -101,7 +104,7 @@ class Game(
 
     fun score(): Double {
         return (
-                panel.flatten().reduce { acc, list -> acc + list }
+                panel.flatten().reduce { acc, list -> acc + 2.0.pow(list).toInt() }
                 )
             .toDouble()
     }
@@ -120,7 +123,7 @@ class Game(
                                 (it.second / (it.first - it.second))
                             ).toDouble()
                 }
-            }.flatten().reduce { acc, list -> acc + list } + step * 10 + score()
+            }.flatten().reduce { acc, list -> acc + list } + step * 10 + score() * 5
     }
 
     fun step() = step

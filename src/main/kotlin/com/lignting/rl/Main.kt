@@ -7,16 +7,16 @@ fun main() {
         Model(
             Dense(16, 13),
             Relu(),
-//            Dropout(),
+            Dropout(),
             Dense(13, 10),
             Relu(),
-//            Dropout(),
+            Dropout(),
             Dense(10, 7),
             Relu(),
 //            Dropout(),
             Dense(7, 4),
             Relu(),
-//            Dropout(),
+            Dropout(),
             loss = Mse(),
             learningRate = 0.0001
         )
