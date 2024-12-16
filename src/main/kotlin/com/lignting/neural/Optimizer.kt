@@ -13,12 +13,12 @@ interface Optimizer<T, D : Dimension> {
     fun copy(): Optimizer<T, D>
 }
 
-class GradientDescent<T : Double, D : Dimension> : Optimizer<T, D> {
-    override fun optimize(parameters: NDArray<T, D>, grads: NDArray<T, D>, learningRate: Double): NDArray<T, D> {
-        require(parameters.shape.contentEquals(grads.shape))
-        return parameters - (grads * mk.dnarray<Double, D>(parameters.shape) { learningRate })
-    }
-
-
-    override fun copy() = GradientDescent<T, D>()
-}
+//class GradientDescent<T : Double, D : Dimension> : Optimizer<T, D> {
+//    override fun optimize(parameters: NDArray<T, D>, grads: NDArray<T, D>, learningRate: Double): NDArray<T, D> {
+//        require(parameters.shape.contentEquals(grads.shape))
+//        return parameters - (grads * mk.dnarray<Double, D>(parameters.shape) { learningRate })
+//    }
+//
+//
+//    override fun copy() = GradientDescent<T, D>()
+//}

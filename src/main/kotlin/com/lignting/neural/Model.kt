@@ -9,7 +9,7 @@ class Model(vararg layers: Layer, private val loss: Loss = Mse(), private val le
     fun fit(
         input: D2Array<Double>,
         output: D2Array<Double>,
-        learningRateReductionRate: Int = 1,
+        learningRateReductionRate: Int = 0,
         learningRateDeclareDistance: Double = 0.00001
     ): Double {
         val AList = mutableListOf(input)
