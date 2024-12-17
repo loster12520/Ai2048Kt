@@ -41,7 +41,6 @@ class Dense(
         val dWeight =
             (forwardOutput.transpose() dot input).map { 1.0 / m * it }.map { max(min(it, 100000.0), -100000.0) }
         val dBias = mk.math.sumD2(input, 0).map { 1.0 / m * it }.map { max(min(it, 100000.0), -100000.0) }
-        println(dBias)
         weight -= dWeight * learningRate
         bias -= dBias * learningRate
         return input dot weight.transpose()

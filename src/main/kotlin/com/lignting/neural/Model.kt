@@ -4,7 +4,7 @@ import org.jetbrains.kotlinx.multik.ndarray.data.D1Array
 import org.jetbrains.kotlinx.multik.ndarray.data.D2Array
 import kotlin.math.min
 
-class Model(vararg layers: Layer, private val loss: Loss = Mse(), private val learningRate: Double = 0.01) {
+class Model(vararg layers: Layer, private val loss: Loss = Mse(), private val learningRate: Double = 0.01,private val optimizer: Optimizer = GradientDescent()) {
     private val layerList = layers.toList()
     fun fit(
         input: D2Array<Double>,
