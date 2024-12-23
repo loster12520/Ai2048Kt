@@ -13,8 +13,11 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation("org.jetbrains.kotlinx:multik-core:0.2.3")
     implementation("org.jetbrains.kotlinx:multik-default:0.2.3")
+
     implementation("org.jfree:jfreechart:1.5.3")
     implementation("org.jfree:jcommon:1.0.24")
+    implementation("com.jsoizo:kotlin-csv-jvm:1.10.0")
+    implementation("org.jetbrains.kotlinx:dataframe:0.15.0")
 }
 
 tasks.test {

@@ -39,5 +39,4 @@ class Mae : Loss {
         val n = y.shape[0] * y.shape[1]
         return (y - yHat).map { if (it > 0) -1.0 / n else if (it < 0) 1.0 / n else 0.0 }
     }
-
 }

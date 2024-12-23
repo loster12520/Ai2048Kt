@@ -43,7 +43,7 @@ class Agent(val model: Model) {
             val score = game.reward()
             val panel = game.panel()
             val step = game.step()
-            val directions = model.predict(mk.ndarray(panel.map { it.toDouble() }))
+            val directions = model.predictOne(mk.ndarray(panel.map { it.toDouble() }))
             val direction = directions.data.map { max(it, 0.01) }.mapIndexed { i, d -> i to d }
                 .let {
                     if (Random.nextDouble() > 1 / (score + 1) * 100)
@@ -55,7 +55,7 @@ class Agent(val model: Model) {
 //            game.print()
 //            println(score)
             val reward = (game.reward() - score) + 100000.0 * (game.step() - step - 1)
-            val maxNext = modelBuffer.predict(mk.ndarray(game.panel().map { it.toDouble() })).data.max()
+            val maxNext = modelBuffer.predictOne(mk.ndarray(game.panel().map { it.toDouble() })).data.max()
             val update = directions.toMutableList()
             update[direction] = reward + 0.9 * maxNext
             replayBuffer.addReplay(panel, update)
@@ -63,7 +63,7 @@ class Agent(val model: Model) {
             val trainData = replayBuffer.getTrainData(500).let {
                 mk.ndarray(it.map { it.input.map { it.toDouble() } }) to mk.ndarray(it.map { it.output })
             }
-            val loss = model.fit(trainData.first, trainData.second, it / 10000 + 1, 0.000001)
+            val loss = model.fit(trainData.first, trainData.second)
             lossList.add(it to loss)
 //            if (it % 1000 == 0)
 //                println("loss: $loss in $it times")

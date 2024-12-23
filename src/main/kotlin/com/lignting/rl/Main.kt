@@ -17,8 +17,7 @@ fun main() {
             Dense(7, 4),
             Relu(),
             Dropout(),
-            loss = Mse(),
-            learningRate = 0.0001
+            loss = Mse()
         )
     ).start().paintLoss().paintGame().paintReward().printGame()
 }
