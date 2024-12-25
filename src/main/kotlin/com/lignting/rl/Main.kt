@@ -17,7 +17,8 @@ fun main() {
             Dense(7, 4),
             Relu(),
             Dropout(),
-            loss = Mse()
+            loss = Mse(),
+            optimizer = Adam()
         )
     ).start().paintLoss().paintGame().paintReward().printGame()
 }

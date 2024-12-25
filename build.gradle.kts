@@ -18,6 +18,7 @@ dependencies {
     implementation("org.jfree:jcommon:1.0.24")
     implementation("com.jsoizo:kotlin-csv-jvm:1.10.0")
     implementation("org.jetbrains.kotlinx:dataframe:0.15.0")
+    implementation("org.jetbrains.kotlinx:kandy-lets-plot:0.7.1")
 }
 
 tasks.test {

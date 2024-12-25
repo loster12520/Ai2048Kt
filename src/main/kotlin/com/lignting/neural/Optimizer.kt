@@ -104,5 +104,5 @@ class Adam(
         return parameters - (vCorrected / sCorrected.map { it.pow(0.5) + epsilon }).map { it * learningRate }
     }
 
-    override fun copy() = Adam(learningRate, beta1, beta2, epsilon)
+    override fun copy() = Adam(learningRate, beta1, beta2, epsilon, maxGradBound)
 }

@@ -10,10 +10,8 @@ import org.jfree.chart.ChartPanel
 import org.jfree.chart.plot.PlotOrientation
 import org.jfree.data.xy.XYSeries
 import org.jfree.data.xy.XYSeriesCollection
-import java.awt.Image
 import javax.swing.JFrame
 import kotlin.math.max
-import kotlin.math.pow
 import kotlin.random.Random
 
 class Agent(val model: Model) {

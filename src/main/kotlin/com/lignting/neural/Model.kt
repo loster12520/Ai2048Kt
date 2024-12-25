@@ -63,5 +63,5 @@ class Model(
 
     fun evaluate(input: D2Array<Double>, output: D2Array<Double>) = loss.loss(predict(input), output)
 
-    fun copy() = Model(*layerList.map { it.copy() }.toTypedArray(), loss = loss)
+    fun copy() = Model(*layerList.map { it.copy() }.toTypedArray(), loss = loss, optimizer = optimizer.copy())
 }
