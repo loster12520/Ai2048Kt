@@ -15,51 +15,58 @@ import kotlin.math.min
 import kotlin.math.pow
 
 interface Optimizer {
-    fun optimizeW(parameters: D2Array<Double>, grads: D2Array<Double>): D2Array<Double>
+    fun optimizeW(
+        parameters: D2Array<Double>, grads: D2Array<Double>, scheduler: Scheduler, epoch: Int
+    ): D2Array<Double>
 
-    fun optimizeB(parameters: D1Array<Double>, grads: D1Array<Double>): D1Array<Double>
+    fun optimizeB(
+        parameters: D1Array<Double>, grads: D1Array<Double>, scheduler: Scheduler, epoch: Int
+    ): D1Array<Double>
 
     fun copy(): Optimizer
 }
 
-class GradientDescent(val learningRate: Double = 0.01) : Optimizer {
-    override fun optimizeW(parameters: D2Array<Double>, grads: D2Array<Double>): D2Array<Double> {
-        require(parameters.shape contentEquals grads.shape)
-        return parameters - grads.map { it * learningRate }
-    }
-
-    override fun optimizeB(parameters: D1Array<Double>, grads: D1Array<Double>): D1Array<Double> {
-        require(parameters.shape contentEquals grads.shape)
-        return parameters - grads.map { it * learningRate }
-    }
-
-    override fun copy() = GradientDescent(learningRate)
-}
-
-class Momentum(val learningRate: Double = 0.01, val beta: Double = 0.9) : Optimizer {
-    var vWeight: D2Array<Double>? = null
-    var vBias: D1Array<Double>? = null
+class GradientDescent() : Optimizer {
     override fun optimizeW(
-        parameters: D2Array<Double>, grads: D2Array<Double>
+        parameters: D2Array<Double>, grads: D2Array<Double>, scheduler: Scheduler, epoch: Int
     ): D2Array<Double> {
-        if (vWeight == null) vWeight = mk.zeros(parameters.shape, DataType.DoubleDataType)
-        vWeight = vWeight!!.map { it * beta } + grads.map { it * (1 - beta) }
-        return parameters - vWeight!!.map { it * learningRate }
+        require(parameters.shape contentEquals grads.shape)
+        return parameters - grads.map { it * scheduler.getLearningRate(epoch) }
     }
 
     override fun optimizeB(
-        parameters: D1Array<Double>, grads: D1Array<Double>
+        parameters: D1Array<Double>, grads: D1Array<Double>, scheduler: Scheduler, epoch: Int
+    ): D1Array<Double> {
+        require(parameters.shape contentEquals grads.shape)
+        return parameters - grads.map { it * scheduler.getLearningRate(epoch) }
+    }
+
+    override fun copy() = GradientDescent()
+}
+
+class Momentum(val beta: Double = 0.9) : Optimizer {
+    var vWeight: D2Array<Double>? = null
+    var vBias: D1Array<Double>? = null
+    override fun optimizeW(
+        parameters: D2Array<Double>, grads: D2Array<Double>, scheduler: Scheduler, epoch: Int
+    ): D2Array<Double> {
+        if (vWeight == null) vWeight = mk.zeros(parameters.shape, DataType.DoubleDataType)
+        vWeight = vWeight!!.map { it * beta } + grads.map { it * (1 - beta) }
+        return parameters - vWeight!!.map { it * scheduler.getLearningRate(epoch) }
+    }
+
+    override fun optimizeB(
+        parameters: D1Array<Double>, grads: D1Array<Double>, scheduler: Scheduler, epoch: Int
     ): D1Array<Double> {
         if (vBias == null) vBias = mk.zeros(parameters.shape, DataType.DoubleDataType)
         vBias = vBias!!.map { it * beta } + grads.map { it * (1 - beta) }
-        return parameters - vBias!!.map { it * learningRate }
+        return parameters - vBias!!.map { it * scheduler.getLearningRate(epoch) }
     }
 
-    override fun copy() = Momentum(learningRate, beta)
+    override fun copy() = Momentum(beta)
 }
 
 class Adam(
-    val learningRate: Double = 0.001,
     val beta1: Double = 0.9,
     val beta2: Double = 0.999,
     val epsilon: Double = 1e-05,
@@ -73,7 +80,7 @@ class Adam(
     var wTimes: Int = 1
     var bTimes: Int = 1
     override fun optimizeW(
-        parameters: D2Array<Double>, grads: D2Array<Double>
+        parameters: D2Array<Double>, grads: D2Array<Double>, scheduler: Scheduler, epoch: Int
     ): D2Array<Double> {
         if (vWeight == null || sWeight == null) {
             vWeight = mk.zeros(parameters.shape, DataType.DoubleDataType)
@@ -85,11 +92,11 @@ class Adam(
         sWeight = sWeight!!.map { it * beta2 } + (clippedGrads * clippedGrads).map { it * (1 - beta2) }
         val sCorrected = sWeight!!.map { it / (1 - beta2.pow(wTimes)) }
         wTimes++
-        return parameters - (vCorrected / sCorrected.map { it.pow(0.5) + epsilon }).map { it * learningRate }
+        return parameters - (vCorrected / sCorrected.map { it.pow(0.5) + epsilon }).map { it * scheduler.getLearningRate(epoch) }
     }
 
     override fun optimizeB(
-        parameters: D1Array<Double>, grads: D1Array<Double>
+        parameters: D1Array<Double>, grads: D1Array<Double>, scheduler: Scheduler, epoch: Int
     ): D1Array<Double> {
         if (vBias == null || sBias == null) {
             vBias = mk.zeros(parameters.shape, DataType.DoubleDataType)
@@ -101,8 +108,8 @@ class Adam(
         sBias = sBias!!.map { it * beta2 } + (clippedGrads * clippedGrads).map { it * (1 - beta2) }
         val sCorrected = sBias!!.map { it / (1 - beta2.pow(bTimes)) }
         bTimes++
-        return parameters - (vCorrected / sCorrected.map { it.pow(0.5) + epsilon }).map { it * learningRate }
+        return parameters - (vCorrected / sCorrected.map { it.pow(0.5) + epsilon }).map { it * scheduler.getLearningRate(epoch) }
     }
 
-    override fun copy() = Adam(learningRate, beta1, beta2, epsilon, maxGradBound)
+    override fun copy() = Adam(beta1, beta2, epsilon, maxGradBound)
 }

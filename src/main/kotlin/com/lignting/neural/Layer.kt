@@ -17,7 +17,9 @@ interface Layer {
     fun backward(
         input: D2Array<Double>,
         forwardOutput: D2Array<Double>,
-        optimizer: Optimizer = GradientDescent()
+        optimizer: Optimizer = GradientDescent(),
+        scheduler: Scheduler,
+        epoch: Int
     ): D2Array<Double>
 
     fun copy(): Layer
@@ -40,7 +42,7 @@ class Dense(
     override fun forward(input: D2Array<Double>): D2Array<Double> = (input dot weight) addB bias
 
     override fun backward(
-        input: D2Array<Double>, forwardOutput: D2Array<Double>, optimizer: Optimizer
+        input: D2Array<Double>, forwardOutput: D2Array<Double>, optimizer: Optimizer, scheduler: Scheduler, epoch: Int
     ): D2Array<Double> {
         if (optimizerCopy == null)
             optimizerCopy = optimizer
@@ -48,8 +50,8 @@ class Dense(
         val dWeight =
             (forwardOutput.transpose() dot input).map { 1.0 / m * it }
         val dBias = mk.math.sumD2(input, 0).map { 1.0 / m * it }
-        weight = optimizerCopy!!.optimizeW(weight, dWeight)
-        bias = optimizerCopy!!.optimizeB(bias, dBias)
+        weight = optimizerCopy!!.optimizeW(weight, dWeight, scheduler, epoch)
+        bias = optimizerCopy!!.optimizeB(bias, dBias, scheduler, epoch)
         return input dot weight.transpose()
     }
 
@@ -62,7 +64,7 @@ class Relu() : Layer {
     override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { max(it, 0.0) }
 
     override fun backward(
-        input: D2Array<Double>, forwardOutput: D2Array<Double>, optimizer: Optimizer
+        input: D2Array<Double>, forwardOutput: D2Array<Double>, optimizer: Optimizer, scheduler: Scheduler, epoch: Int
     ): D2Array<Double> = forwardOutput * input.map { if (it > 0) 1.0 else 0.0 }
 
     override fun copy() = Relu()
@@ -74,7 +76,7 @@ class Sigmoid(val zoom: Int = 1) : Layer {
     override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { 1 / (1 + exp(-it / zoom)) }
 
     override fun backward(
-        input: D2Array<Double>, forwardOutput: D2Array<Double>, optimizer: Optimizer
+        input: D2Array<Double>, forwardOutput: D2Array<Double>, optimizer: Optimizer, scheduler: Scheduler, epoch: Int
     ): D2Array<Double> = forwardOutput * input.map { it * (1 - it) / zoom }
 
     override fun copy() = Sigmoid()
@@ -86,7 +88,7 @@ class LeakyRelu(private val alpha: Double = 0.01) : Layer {
     override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { if (it > 0) it else alpha * it }
 
     override fun backward(
-        input: D2Array<Double>, forwardOutput: D2Array<Double>, optimizer: Optimizer
+        input: D2Array<Double>, forwardOutput: D2Array<Double>, optimizer: Optimizer, scheduler: Scheduler, epoch: Int
     ): D2Array<Double> = forwardOutput * input.map { if (it > 0) 1.0 else alpha }
 
     override fun copy() = LeakyRelu(alpha)
@@ -100,7 +102,9 @@ class SoftPlus() : Layer {
     override fun backward(
         input: D2Array<Double>,
         forwardOutput: D2Array<Double>,
-        optimizer: Optimizer
+        optimizer: Optimizer,
+        scheduler: Scheduler,
+        epoch: Int
     ) = forwardOutput * input.map { 1 / (1 + exp(-it)) }
 
     override fun copy() = SoftPlus()
@@ -118,7 +122,9 @@ class Dropout(private val dropout: Double = 0.5) : Layer {
     override fun backward(
         input: D2Array<Double>,
         forwardOutput: D2Array<Double>,
-        optimizer: Optimizer
+        optimizer: Optimizer,
+        scheduler: Scheduler,
+        epoch: Int
     ): D2Array<Double> =
         forwardOutput * (input * (mask
             ?: throw RuntimeException("backward before forward"))).map { it * (1.0 / (1.0 - dropout)) }

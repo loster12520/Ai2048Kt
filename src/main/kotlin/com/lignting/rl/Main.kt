@@ -18,7 +18,8 @@ fun main() {
             LeakyRelu(),
             Dropout(),
             loss = Mse(),
-            optimizer = Adam(learningRate = 1e-3)
+            optimizer = Adam(),
+            scheduler = ExponentialScheduler(1e-3, dropRate = 1 - 1e-1)
         )
     ).start().paintLoss().paintGame()
 }

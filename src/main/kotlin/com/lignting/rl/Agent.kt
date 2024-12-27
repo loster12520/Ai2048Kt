@@ -24,14 +24,14 @@ class Agent(val model: Model) {
     fun start(times: Int = 20): Agent {
         (1 until times).forEach {
             println("start $it epoches")
-            epoches()
+            epoches(it)
             println("-------------------------------------------------")
         }
         return this
     }
 
-    private fun epoches(): MutableList<Game> {
-        val (games, losses) = gameLoop()
+    private fun epoches(epoch: Int): MutableList<Game> {
+        val (games, losses) = gameLoop(epoch = epoch)
         val score = games.map { it.score() }.average()
         val step = games.map { it.step() }.average()
         val loss = losses.average()
@@ -48,13 +48,13 @@ class Agent(val model: Model) {
         return games
     }
 
-    private fun gameLoop(n: Int = maxAgentNumber): Pair<MutableList<Game>, MutableList<Double>> {
+    private fun gameLoop(n: Int = maxAgentNumber, epoch: Int): Pair<MutableList<Game>, MutableList<Double>> {
         val gameList = MutableList(n) { Game() }
         val lossList = mutableListOf<Double>()
         var count = 0
         while (gameList.any { it.isContinue() }) {
             gameList.filter { it.isContinue() }.map { step(it) }.also { replayBuffer.addReplays(it) }
-            lossList.add(train())
+            lossList.add(train(epoch = epoch))
             count++
             if (count % 10 == 0) modelBuffer = model.copy()
         }
@@ -129,11 +129,11 @@ class Agent(val model: Model) {
     // 检查是否形成了2048
     private fun calculateFormed2048(now: List<Int>) = if (now.contains(2048)) 1 else 0
 
-    private fun train(dataSize: Int = 100): Double {
+    private fun train(dataSize: Int = 100, epoch: Int): Double {
         val trainData = replayBuffer.getTrainData(dataSize).let {
             mk.ndarray(it.map { it.input.map { it.toDouble() } }) to mk.ndarray(it.map { it.output })
         }
-        return model.fitWithBatchSize(trainData.first, trainData.second)
+        return model.fitWithBatchSize(trainData.first, trainData.second, epoch)
     }
 
     fun paintLoss(): Agent {

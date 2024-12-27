@@ -10,10 +10,11 @@ import org.jetbrains.kotlinx.multik.ndarray.operations.toListD2
 class Model(
     vararg layers: Layer,
     private val loss: Loss = Mse(),
-    private val optimizer: Optimizer = GradientDescent()
+    private val optimizer: Optimizer = GradientDescent(),
+    private val scheduler: Scheduler = StepDecayScheduler(0.01)
 ) {
     private val layerList = layers.toList()
-    fun fit(input: D2Array<Double>, output: D2Array<Double>): Double {
+    fun fit(input: D2Array<Double>, output: D2Array<Double>, epoch: Int): Double {
         val aList = mutableListOf(input)
         layerList.forEach { layer ->
             aList.add(layer.forward(aList.last()))
@@ -29,18 +30,20 @@ class Model(
                 layer.backward(
                     dList.last(),
                     A,
-                    optimizer.copy()
+                    optimizer.copy(),
+                    scheduler,
+                    epoch
                 )
             )
         }
         return lossResult
     }
 
-    fun fitWithBatchSize(input: D2Array<Double>, output: D2Array<Double>, batchSize: Int = 100): Double {
-        val res = input.toListD2().zip(output.toListD2()).shuffled().chunked(batchSize).forEach {
+    fun fitWithBatchSize(input: D2Array<Double>, output: D2Array<Double>, epoch: Int, batchSize: Int = 100): Double {
+        input.toListD2().zip(output.toListD2()).shuffled().chunked(batchSize).forEach {
             val input = mk.ndarray(it.map { it.first })
             val output = mk.ndarray(it.map { it.second })
-            fit(input, output)
+            fit(input, output, epoch)
         }
         return evaluate(input, output)
     }
