@@ -19,10 +19,9 @@ class Agent(val model: Model) {
     private val replayBuffer = ReplayBuffer(100000)
     private val lossList = mutableListOf<Double>()
     private val gameList = mutableListOf<Double>()
-    private val rewardList = mutableListOf<Double>()
     private val maxAgentNumber = 100
 
-    fun start(times: Int = 1000): Agent {
+    fun start(times: Int = 20): Agent {
         (1 until times).forEach {
             println("start $it epoches")
             epoches()
@@ -42,8 +41,10 @@ class Agent(val model: Model) {
         val bestGame = games.maxBy { it.score() }
         println("best game:")
         bestGame.print()
+        println()
         println("losses: $loss")
         lossList.addAll(losses)
+        gameList.add(score)
         return games
     }
 
@@ -173,33 +174,6 @@ class Agent(val model: Model) {
             "Game-Score", // 图表标题
             "Epoches", // x轴标题
             "Score", // y轴标题
-            dataSet, // 数据集
-            PlotOrientation.VERTICAL, // 垂直方向
-            true, // 是否包含图例
-            true, // 是否生成工具提示
-            false // 是否生成URL链接
-        )
-
-        // 创建一个JFrame来显示图表
-        val frame = JFrame()
-        frame.defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
-        frame.contentPane.add(ChartPanel(chart))
-        frame.pack()
-        frame.isVisible = true
-        return this
-    }
-
-    fun paintReward(): Agent {
-        val series = XYSeries("Game")
-        rewardList.forEachIndexed() { index, value ->
-            series.add(index, value)
-        }
-        val dataSet = XYSeriesCollection()
-        dataSet.addSeries(series)
-        val chart = ChartFactory.createXYLineChart(
-            "Reward", // 图表标题
-            "Times", // x轴标题
-            "Reward", // y轴标题
             dataSet, // 数据集
             PlotOrientation.VERTICAL, // 垂直方向
             true, // 是否包含图例
