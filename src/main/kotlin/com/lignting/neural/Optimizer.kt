@@ -61,7 +61,7 @@ class Momentum(val learningRate: Double = 0.01, val beta: Double = 0.9) : Optimi
 class Adam(
     val learningRate: Double = 0.001,
     val beta1: Double = 0.9,
-    val beta2: Double = 0.99,
+    val beta2: Double = 0.999,
     val epsilon: Double = 1e-05,
     val maxGradBound: Double = 100.0
 ) :

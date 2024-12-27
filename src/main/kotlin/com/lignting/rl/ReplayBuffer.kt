@@ -16,6 +16,9 @@ class ReplayBuffer(val size: Int = 1000) {
         }
     }
 
+    fun addReplays(data: List<Pair<List<Int>, List<Double>>>) =
+        data.forEach { (input, output) -> addReplay(input, output) }
+
     fun getTrainData(number: Int = (size / 20)): List<Replay> {
         return ReservoirSample<Replay>(number).apply {
             replayList.forEach { add(it) }

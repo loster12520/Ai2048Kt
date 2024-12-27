@@ -91,12 +91,11 @@ class Game(
     fun print() = panel.forEach {
         println(
             it
-//            .map { 2.0.pow(it).toInt() }
+                .map { if (it == 0) 0 else 2.0.pow(it).toInt() }
         )
     }.let {
         println("score: ${score()}")
         println("step: ${step}")
-        println("--------------")
         this
     }
 
@@ -104,7 +103,7 @@ class Game(
 
     fun score(): Double {
         return (
-                panel.flatten().reduce { acc, list -> acc + 2.0.pow(list).toInt() }
+                panel.flatten().reduce { acc, list -> acc + if (list == 0) 0 else 2.0.pow(list).toInt() }
                 )
             .toDouble()
     }

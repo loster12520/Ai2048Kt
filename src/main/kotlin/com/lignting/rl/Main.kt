@@ -5,20 +5,20 @@ import com.lignting.neural.*
 fun main() {
     Agent(
         Model(
-            Dense(16, 13),
-            Relu(),
+            Dense(16, 128),
+            LeakyRelu(),
             Dropout(),
-            Dense(13, 10),
-            Relu(),
+            Dense(128, 256),
+            LeakyRelu(),
             Dropout(),
-            Dense(10, 7),
-            Relu(),
-//            Dropout(),
-            Dense(7, 4),
-            Relu(),
+            Dense(256, 128),
+            LeakyRelu(),
+            Dropout(),
+            Dense(128, 4),
+            LeakyRelu(),
             Dropout(),
             loss = Mse(),
-            optimizer = Adam()
+            optimizer = Adam(learningRate = 1e-3)
         )
-    ).start().paintLoss().paintGame().paintReward().printGame()
+    ).start().paintLoss().paintGame()
 }

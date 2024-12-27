@@ -9,9 +9,7 @@ import org.jetbrains.kotlinx.multik.ndarray.data.D2Array
 import org.jetbrains.kotlinx.multik.ndarray.operations.map
 import org.jetbrains.kotlinx.multik.ndarray.operations.minus
 import org.jetbrains.kotlinx.multik.ndarray.operations.times
-import kotlin.math.exp
-import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.*
 import kotlin.random.Random
 
 interface Layer {
@@ -65,7 +63,7 @@ class Relu() : Layer {
 
     override fun backward(
         input: D2Array<Double>, forwardOutput: D2Array<Double>, optimizer: Optimizer
-    ): D2Array<Double> = input.map { if (it > 0) 1.0 else 0.0 }
+    ): D2Array<Double> = forwardOutput * input.map { if (it > 0) 1.0 else 0.0 }
 
     override fun copy() = Relu()
     override fun info(): String =
@@ -89,11 +87,25 @@ class LeakyRelu(private val alpha: Double = 0.01) : Layer {
 
     override fun backward(
         input: D2Array<Double>, forwardOutput: D2Array<Double>, optimizer: Optimizer
-    ): D2Array<Double> = input.map { if (it > 0) 1.0 else alpha }
+    ): D2Array<Double> = forwardOutput * input.map { if (it > 0) 1.0 else alpha }
 
     override fun copy() = LeakyRelu(alpha)
     override fun info(): String =
         "LeakyRelu()"
+}
+
+class SoftPlus() : Layer {
+    override fun forward(input: D2Array<Double>) = input.map { ln(1 + 1e-8 + exp(it)) }
+
+    override fun backward(
+        input: D2Array<Double>,
+        forwardOutput: D2Array<Double>,
+        optimizer: Optimizer
+    ) = forwardOutput * input.map { 1 / (1 + exp(-it)) }
+
+    override fun copy() = SoftPlus()
+
+    override fun info() = "SoftPlus()"
 }
 
 class Dropout(private val dropout: Double = 0.5) : Layer {
@@ -108,7 +120,8 @@ class Dropout(private val dropout: Double = 0.5) : Layer {
         forwardOutput: D2Array<Double>,
         optimizer: Optimizer
     ): D2Array<Double> =
-        (input * (mask ?: throw RuntimeException("backward before forward"))).map { it * (1.0 / (1.0 - dropout)) }
+        forwardOutput * (input * (mask
+            ?: throw RuntimeException("backward before forward"))).map { it * (1.0 / (1.0 - dropout)) }
 
     override fun copy() = Dropout(dropout)
 
