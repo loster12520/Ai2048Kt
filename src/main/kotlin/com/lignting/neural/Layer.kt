@@ -1,13 +1,10 @@
 package com.lignting.neural
 
-import org.jetbrains.kotlinx.multik.api.d2array
+import org.jetbrains.kotlinx.multik.api.*
 import org.jetbrains.kotlinx.multik.api.linalg.dot
-import org.jetbrains.kotlinx.multik.api.mk
-import org.jetbrains.kotlinx.multik.api.rand
 import org.jetbrains.kotlinx.multik.ndarray.data.D1Array
 import org.jetbrains.kotlinx.multik.ndarray.data.D2Array
 import org.jetbrains.kotlinx.multik.ndarray.operations.map
-import org.jetbrains.kotlinx.multik.ndarray.operations.minus
 import org.jetbrains.kotlinx.multik.ndarray.operations.times
 import kotlin.math.*
 import kotlin.random.Random
@@ -35,8 +32,15 @@ class Dense(
 
     var optimizerCopy: Optimizer? = null
 
+    constructor(inputSize: Int, outputSize: Int, initialize: Initialize) : this(
+        inputSize,
+        outputSize,
+        initialize.getWeight(inputSize, outputSize),
+        initialize.getBias(inputSize, outputSize),
+    )
+
     constructor(inputSize: Int, outputSize: Int) : this(
-        inputSize, outputSize, mk.rand<Double>(inputSize, outputSize), mk.rand<Double>(outputSize)
+        inputSize, outputSize, UniformInitialize()
     )
 
     override fun forward(input: D2Array<Double>): D2Array<Double> = (input dot weight) addB bias
@@ -96,8 +100,9 @@ class LeakyRelu(private val alpha: Double = 0.01) : Layer {
         "LeakyRelu()"
 }
 
-class SoftPlus() : Layer {
-    override fun forward(input: D2Array<Double>) = input.map { ln(1 + 1e-8 + exp(it)) }
+class SoftPlus(private val base: Double = 2.0, private val maxClip: Double = 700.0) : Layer {
+    override fun forward(input: D2Array<Double>) =
+        input.map { log(1 + 1e-8 + base.pow(max(-maxClip, min(maxClip, it))), base = base) }
 
     override fun backward(
         input: D2Array<Double>,
@@ -105,9 +110,16 @@ class SoftPlus() : Layer {
         optimizer: Optimizer,
         scheduler: Scheduler,
         epoch: Int
-    ) = forwardOutput * input.map { 1 / (1 + exp(-it)) }
+    ) = forwardOutput * input.map {
+        base.pow(-max(-maxClip, min(maxClip, it))) / (1 + base.pow(
+            -max(
+                -maxClip,
+                min(maxClip, it)
+            )
+        ))
+    }
 
-    override fun copy() = SoftPlus()
+    override fun copy() = SoftPlus(base, maxClip)
 
     override fun info() = "SoftPlus()"
 }

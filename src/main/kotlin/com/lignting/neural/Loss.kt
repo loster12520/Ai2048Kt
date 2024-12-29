@@ -4,6 +4,7 @@ import org.jetbrains.kotlinx.multik.ndarray.data.D2Array
 import org.jetbrains.kotlinx.multik.ndarray.operations.map
 import org.jetbrains.kotlinx.multik.ndarray.operations.minus
 import org.jetbrains.kotlinx.multik.ndarray.operations.reduce
+import org.jetbrains.kotlinx.multik.ndarray.operations.sum
 import kotlin.math.abs
 import kotlin.math.pow
 

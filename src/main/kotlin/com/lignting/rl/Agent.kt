@@ -1,9 +1,9 @@
 package com.lignting.rl
 
-import com.lignting.neural.Loss
-import com.lignting.neural.Model
+import com.lignting.neural.*
 import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.ndarray
+import org.jetbrains.kotlinx.multik.ndarray.data.get
 import org.jetbrains.kotlinx.multik.ndarray.operations.toMutableList
 import org.jfree.chart.ChartFactory
 import org.jfree.chart.ChartPanel
@@ -16,12 +16,14 @@ import kotlin.random.Random
 
 class Agent(val model: Model) {
     private var modelBuffer = model.copy()
-    private val replayBuffer = ReplayBuffer(100000)
+    private val replayBuffer = PriorityExperienceReplayBuffer(100000)
+    private val epsilonGetter = ExponentialScheduler(1.0, dropRate = 1 - 1e-1)
     private val lossList = mutableListOf<Double>()
     private val gameList = mutableListOf<Double>()
     private val maxAgentNumber = 100
+    private val gamma = 0.99
 
-    fun start(times: Int = 20): Agent {
+    fun start(times: Int = 100): Agent {
         (1 until times).forEach {
             println("start $it epoches")
             epoches(it)
@@ -53,7 +55,7 @@ class Agent(val model: Model) {
         val lossList = mutableListOf<Double>()
         var count = 0
         while (gameList.any { it.isContinue() }) {
-            gameList.filter { it.isContinue() }.map { step(it) }.also { replayBuffer.addReplays(it) }
+            gameList.filter { it.isContinue() }.map { step(it, epoch) }.also { replayBuffer.addReplays(it) }
             lossList.add(train(epoch = epoch))
             count++
             if (count % 10 == 0) modelBuffer = model.copy()
@@ -62,72 +64,25 @@ class Agent(val model: Model) {
         return gameList to lossList
     }
 
-    private fun step(game: Game) = game.let {
-        val score = game.score()
+    private fun step(game: Game, epoch: Int) = game.let {
         val panel = game.panel()
         val step = game.step()
         val directions = model.predictOne(mk.ndarray(panel.map { it.toDouble() }))
         val direction = directions.data.map { max(it, 0.01) }.mapIndexed { i, d -> i to d }
             .let {
-                if (Random.nextDouble() > 1 / (score + 1) * 100)
+                if (Random.nextDouble() > epsilonGetter.getLearningRate(epoch))
                     it.maxBy { it.second }.first
                 else
                     Random.nextInt(it.size)
             }
-        game.move(direction)
-        val reward = reward(panel, game.panel(), game) + 100000.0 * (game.step() - step - 1)
+        val reward = game.move(direction) + 100000.0 * (game.step() - step - 1)
         val maxNext = modelBuffer.predictOne(mk.ndarray(game.panel().map { it.toDouble() })).data.max()
         val update = directions.toMutableList()
-        update[direction] = reward + 0.9 * maxNext
-        panel to update
+        update[direction] = reward + gamma * maxNext
+
+        val tdError = reward + 0.9 * maxNext - directions[direction]
+        panel to update to tdError
     }
-
-    private fun reward(last: List<Int>, now: List<Int>, game: Game): Double {
-        // 基础奖励，可以根据需要调整
-        val baseReward = 0.1
-
-        // 检查得分是否增加
-        val scoreIncrease = calculateScoreIncrease(last, now)
-
-        // 检查是否形成了新数字
-        val newTilesCreated = calculateNewTilesCreated(last, now)
-
-        // 检查是否形成了2048
-        val formed2048 = calculateFormed2048(now)
-
-        // 检查游戏是否结束
-        val gameEnded = !game.isContinue()
-
-        // 计算奖励
-        var totalReward = baseReward * scoreIncrease +
-                baseReward * newTilesCreated -
-                (if (gameEnded) 100.0 else 0.0) + // 游戏结束的惩罚
-                100 * formed2048 // 形成2048的奖励
-
-        // 如果游戏结束，给予额外的负奖励
-        if (gameEnded) {
-            totalReward -= 10.0
-        }
-
-        return totalReward
-    }
-
-    // 计算得分增加
-    private fun calculateScoreIncrease(last: List<Int>, now: List<Int>) = now.sum() - last.sum()
-
-    // 检查是否形成了新数字
-    private fun calculateNewTilesCreated(last: List<Int>, now: List<Int>): Int {
-        var newTiles = 0
-        for (i in last.indices) {
-            if (last[i] == 0 && now[i] != 0) {
-                newTiles++
-            }
-        }
-        return newTiles
-    }
-
-    // 检查是否形成了2048
-    private fun calculateFormed2048(now: List<Int>) = if (now.contains(2048)) 1 else 0
 
     private fun train(dataSize: Int = 100, epoch: Int): Double {
         val trainData = replayBuffer.getTrainData(dataSize).let {

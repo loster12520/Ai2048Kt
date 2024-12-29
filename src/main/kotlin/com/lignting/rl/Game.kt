@@ -9,7 +9,7 @@ class Game(
     private val odds: Double = 0.9,
     seed: Long = System.currentTimeMillis(),
 ) {
-    var panel = MutableList(size) { MutableList(size) { 0 } }
+    private var panel = MutableList(size) { MutableList(size) { 0 } }
 
     private val random = Random(seed)
 
@@ -35,10 +35,10 @@ class Game(
                                         if (it.second == size - 1) false else panel[it.first][it.second] == panel[it.first][it.second + 1]
             }
 
-    fun move(direction: Int): Game {
+    fun move(direction: Int): Double {
         if (isChange())
             lastPanel = panel.map { it.toMutableList() }.toMutableList()
-        when (direction) {
+        val score = when (direction) {
             0 -> direction(column = false, line = false)// left
             1 -> direction(column = false, line = true) // right
             2 -> direction(column = true, line = false) // up
@@ -54,12 +54,13 @@ class Game(
 
 //        if (step > 10000)
 //            println("~~~~success!!")
-        return this
+        return score
     }
 
     private fun isChange() = !lastPanel.zip(panel).all { it.first.zip(it.second).all { it.first == it.second } }
 
-    private fun direction(column: Boolean, line: Boolean) =
+    private fun direction(column: Boolean, line: Boolean): Double {
+        var score = 0.0
         panel
             .let { if (column) it.t() else it }
             .map { if (line) it.reversed() else it }
@@ -70,9 +71,10 @@ class Game(
                         return@forEach
                     else if (list.size == 0)
                         list += it
-                    else if (it == list[list.size - 1])
+                    else if (it == list[list.size - 1]) {
                         list[list.size - 1] += 1
-                    else
+                        score += 2.0.pow(it)
+                    } else
                         list += it
                 }
                 list + List(size - list.size) { 0 }
@@ -80,6 +82,9 @@ class Game(
             .map { if (line) it.reversed() else it }
             .let { if (column) it.t() else it }
             .let { panel = it.map { it.toMutableList() }.toMutableList() }
+        return score
+    }
+
 
     private fun List<List<Int>>.t() =
         indices.map { x ->
@@ -95,7 +100,7 @@ class Game(
         )
     }.let {
         println("score: ${score()}")
-        println("step: ${step}")
+        println("step: $step")
         this
     }
 
@@ -108,7 +113,6 @@ class Game(
             .toDouble()
     }
 
-    @Suppress("NAME_SHADOWING")
     fun reward(): Double {
         val maxValue = panel.mapIndexed { x, it -> it.mapIndexed { y, value -> (x to y) to value } }
             .flatten().maxBy { it.second }
@@ -126,11 +130,4 @@ class Game(
     }
 
     fun step() = step
-}
-
-
-fun main() {
-    val game = Game()
-        .print().move(0).print().move(0).print().move(0).print().move(0).print()
-    println(game.reward())
 }
