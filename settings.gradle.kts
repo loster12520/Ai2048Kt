@@ -1,5 +1,18 @@
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
-}
 rootProject.name = "Ai2048Kt"
 
+pluginManagement {
+    repositories {
+        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
+        mavenCentral()
+    }
+}
+
+include(":kTouch")
+include(":example")

@@ -4,7 +4,6 @@ import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.ndarray
 import org.jetbrains.kotlinx.multik.ndarray.data.D1Array
 import org.jetbrains.kotlinx.multik.ndarray.data.D2Array
-import org.jetbrains.kotlinx.multik.ndarray.operations.toList
 import org.jetbrains.kotlinx.multik.ndarray.operations.toListD2
 
 class Model(
@@ -19,12 +18,16 @@ class Model(
         layerList.forEach { layer ->
             aList.add(layer.forward(aList.last()))
         }
-        val lossResult = loss.loss(aList.last(), output)
+        val lossResult = loss.loss(output, aList.last())
         if (lossResult.isNaN()) {
-            println("loss error")
+            println(
+                "loss error $lossResult \n${
+                    aList.map { it.toListD2().take(1) }.joinToString("\n---\n") { it.toString() }
+                }"
+            )
             throw RuntimeException("loss error")
         }
-        val dList = mutableListOf(loss.backward(aList.last(), output))
+        val dList = mutableListOf(loss.backward(output, aList.last()))
         layerList.zip(aList.dropLast(1)).asReversed().forEach { (layer, A) ->
             dList.add(
                 layer.backward(
@@ -64,7 +67,11 @@ class Model(
         return aList.last()
     }
 
-    fun evaluate(input: D2Array<Double>, output: D2Array<Double>) = loss.loss(predict(input), output)
+    fun evaluate(input: D2Array<Double>, output: D2Array<Double>) = loss.loss(output, predict(input))
 
     fun copy() = Model(*layerList.map { it.copy() }.toTypedArray(), loss = loss, optimizer = optimizer.copy())
+
+    fun log() = layerList.joinToString("\n") { it.info() }.also {
+        println("model info: \n$it")
+    }
 }

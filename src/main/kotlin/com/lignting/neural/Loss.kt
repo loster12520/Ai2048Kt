@@ -41,3 +41,27 @@ class Mae : Loss {
         return (y - yHat).map { if (it > 0) -1.0 / n else if (it < 0) 1.0 / n else 0.0 }
     }
 }
+
+class HuberLoss(private val delta: Double = 1.0) : Loss {
+    override fun loss(y: D2Array<Double>, yHat: D2Array<Double>): Double {
+        val n = y.shape[0] * y.shape[1]
+        return (y - yHat).map { diff ->
+            if (abs(diff) <= delta) {
+                0.5 * diff.pow(2)
+            } else {
+                delta * (abs(diff) - 0.5 * delta)
+            }
+        }.sum() / n
+    }
+
+    override fun backward(y: D2Array<Double>, yHat: D2Array<Double>): D2Array<Double> {
+        val n = y.shape[0] * y.shape[1]
+        return (y - yHat).map { diff ->
+            when {
+                abs(diff) <= delta -> -diff / n
+                diff > 0 -> -delta / n
+                else -> delta / n
+            }
+        }
+    }
+}
