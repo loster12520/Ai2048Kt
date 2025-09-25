@@ -14,18 +14,32 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 
+/**
+ * 优化器接口，定义参数和梯度的更新方法。
+ */
 interface Optimizer {
+    /**
+     * 更新权重参数。
+     */
     fun optimizeW(
         parameters: D2Array<Double>, grads: D2Array<Double>, scheduler: Scheduler, epoch: Int
     ): D2Array<Double>
-
+    /**
+     * 更新偏置参数。
+     */
     fun optimizeB(
         parameters: D1Array<Double>, grads: D1Array<Double>, scheduler: Scheduler, epoch: Int
     ): D1Array<Double>
-
+    /**
+     * 复制优化器实例。
+     */
     fun copy(): Optimizer
 }
 
+/**
+ * 梯度下降优化器（Gradient Descent）。
+ * 公式：param = param - lr * grad
+ */
 class GradientDescent() : Optimizer {
     override fun optimizeW(
         parameters: D2Array<Double>, grads: D2Array<Double>, scheduler: Scheduler, epoch: Int
@@ -44,6 +58,11 @@ class GradientDescent() : Optimizer {
     override fun copy() = GradientDescent()
 }
 
+/**
+ * 动量优化器（Momentum）。
+ * 公式：v = beta * v + (1-beta) * grad; param = param - lr * v
+ * @param beta 动量因子，默认0.9
+ */
 class Momentum(val beta: Double = 0.9) : Optimizer {
     var vWeight: D2Array<Double>? = null
     var vBias: D1Array<Double>? = null
@@ -66,6 +85,19 @@ class Momentum(val beta: Double = 0.9) : Optimizer {
     override fun copy() = Momentum(beta)
 }
 
+/**
+ * Adam优化器。
+ * 公式：
+ * v = beta1 * v + (1-beta1) * grad
+ * s = beta2 * s + (1-beta2) * grad^2
+ * v_hat = v / (1 - beta1^t)
+ * s_hat = s / (1 - beta2^t)
+ * param = param - lr * v_hat / (sqrt(s_hat) + epsilon)
+ * @param beta1 一阶矩动量因子，默认0.9
+ * @param beta2 二阶矩动量因子，默认0.999
+ * @param epsilon 防止除零，默认1e-5
+ * @param maxGradBound 梯度裁剪阈值，默认100.0
+ */
 class Adam(
     val beta1: Double = 0.9,
     val beta2: Double = 0.999,

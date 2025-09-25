@@ -14,11 +14,24 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 
+/**
+ * 优化器接口。
+ * 包含权重和偏置的优化方法。
+ * @see [doc/neural.md](../../doc/neural.md)
+ */
 interface Optimizer {
+    /**
+     * 优化权重
+     * @see [doc/neural.md](../../doc/neural.md)
+     */
     fun optimizeW(
         parameters: D2Array<Double>, grads: D2Array<Double>, scheduler: Scheduler, epoch: Int
     ): D2Array<Double>
 
+    /**
+     * 优化偏置
+     * @see [doc/neural.md](../../doc/neural.md)
+     */
     fun optimizeB(
         parameters: D1Array<Double>, grads: D1Array<Double>, scheduler: Scheduler, epoch: Int
     ): D1Array<Double>
@@ -26,6 +39,11 @@ interface Optimizer {
     fun copy(): Optimizer
 }
 
+/**
+ * 梯度下降优化器。
+ * $w = w - \eta \cdot \nabla w$
+ * @see [doc/neural.md](../../doc/neural.md)
+ */
 class GradientDescent() : Optimizer {
     override fun optimizeW(
         parameters: D2Array<Double>, grads: D2Array<Double>, scheduler: Scheduler, epoch: Int
@@ -44,6 +62,12 @@ class GradientDescent() : Optimizer {
     override fun copy() = GradientDescent()
 }
 
+/**
+ * Momentum优化器。
+ * $v_t = \beta v_{t-1} + (1-\beta)g_t$
+ * $w = w - \eta v_t$
+ * @see [doc/neural.md](../../doc/neural.md)
+ */
 class Momentum(val beta: Double = 0.9) : Optimizer {
     var vWeight: D2Array<Double>? = null
     var vBias: D1Array<Double>? = null
@@ -66,6 +90,11 @@ class Momentum(val beta: Double = 0.9) : Optimizer {
     override fun copy() = Momentum(beta)
 }
 
+/**
+ * Adam优化器。
+ * 结合Momentum和RMSProp。
+ * @see [doc/neural.md](../../doc/neural.md)
+ */
 class Adam(
     val beta1: Double = 0.9,
     val beta2: Double = 0.999,

@@ -9,8 +9,25 @@ import org.jetbrains.kotlinx.multik.ndarray.operations.times
 import kotlin.math.*
 import kotlin.random.Random
 
+/**
+ * 神经网络层接口，定义了前向传播、反向传播、复制和信息获取方法。
+ */
 interface Layer {
+    /**
+     * 前向传播，计算输出。
+     * @param input 输入数据
+     * @return 输出数据
+     */
     fun forward(input: D2Array<Double>): D2Array<Double>
+    /**
+     * 反向传播，计算梯度并更新参数。
+     * @param input 输入数据
+     * @param forwardOutput 前向输出
+     * @param optimizer 优化器
+     * @param scheduler 学习率调度器
+     * @param epoch 当前轮次
+     * @return 梯度
+     */
     fun backward(
         input: D2Array<Double>,
         forwardOutput: D2Array<Double>,
@@ -18,18 +35,25 @@ interface Layer {
         scheduler: Scheduler,
         epoch: Int
     ): D2Array<Double>
-
+    /**
+     * 复制当前层。
+     */
     fun copy(): Layer
+    /**
+     * 获取层信息字符串。
+     */
     fun info(): String
 }
 
+/**
+ * 全连接层（Dense Layer），实现线性变换：output = input · weight + bias。
+ */
 class Dense(
     private val inputSize: Int,
     private val outputSize: Int,
     private var weight: D2Array<Double>,
     private var bias: D1Array<Double>
 ) : Layer {
-
     var optimizerCopy: Optimizer? = null
 
     constructor(inputSize: Int, outputSize: Int, initialize: Initialize) : this(
@@ -64,6 +88,9 @@ class Dense(
         "Dense()\t\t\tinput:$inputSize\t\t\toutput:$outputSize\t\t\t"
 }
 
+/**
+ * ReLU激活层，公式：output = max(0, input)
+ */
 class Relu() : Layer {
     override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { max(it, 0.0) }
 
@@ -76,6 +103,10 @@ class Relu() : Layer {
         "Relu()"
 }
 
+/**
+ * Sigmoid激活层，公式：output = 1 / (1 + exp(-input / zoom))
+ * @param zoom 缩放因子，默认为1
+ */
 class Sigmoid(val zoom: Int = 1) : Layer {
     override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { 1 / (1 + exp(-it / zoom)) }
 
@@ -88,6 +119,10 @@ class Sigmoid(val zoom: Int = 1) : Layer {
         "Sigmoid()"
 }
 
+/**
+ * LeakyReLU激活层，公式：output = input (input>0), alpha*input (input<=0)
+ * @param alpha 负区间斜率，默认为0.01
+ */
 class LeakyRelu(private val alpha: Double = 0.01) : Layer {
     override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { if (it > 0) it else alpha * it }
 

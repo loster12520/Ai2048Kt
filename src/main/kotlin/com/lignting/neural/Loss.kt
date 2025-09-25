@@ -8,11 +8,30 @@ import org.jetbrains.kotlinx.multik.ndarray.operations.sum
 import kotlin.math.abs
 import kotlin.math.pow
 
+/**
+ * 损失函数接口，定义了损失计算和反向传播的基本方法。
+ */
 interface Loss {
+    /**
+     * 计算损失值。
+     * @param y 真实值
+     * @param yHat 预测值
+     * @return 损失数值
+     */
     fun loss(y: D2Array<Double>, yHat: D2Array<Double>): Double
+    /**
+     * 计算损失对预测值的梯度。
+     * @param y 真实值
+     * @param yHat 预测值
+     * @return 损失对预测值的梯度
+     */
     fun backward(y: D2Array<Double>, yHat: D2Array<Double>): D2Array<Double>
 }
 
+/**
+ * 均方误差损失（Mean Squared Error, MSE）。
+ * 公式：MSE = 1/n * Σ(y - yHat)^2
+ */
 class Mse : Loss {
     override fun loss(y: D2Array<Double>, yHat: D2Array<Double>): Double {
         val n = y.shape[0] * y.shape[1]
@@ -25,9 +44,12 @@ class Mse : Loss {
         val n = y.shape[0] * y.shape[1]
         return (y - yHat).map { -it * 2 / n }
     }
-
 }
 
+/**
+ * 平均绝对误差损失（Mean Absolute Error, MAE）。
+ * 公式：MAE = 1/n * Σ|y - yHat|
+ */
 class Mae : Loss {
     override fun loss(y: D2Array<Double>, yHat: D2Array<Double>): Double {
         val n = y.shape[0] * y.shape[1]
@@ -42,6 +64,12 @@ class Mae : Loss {
     }
 }
 
+/**
+ * Huber损失函数。
+ * 公式：
+ * if |y - yHat| <= delta: 0.5 * (y - yHat)^2
+ * else: delta * (|y - yHat| - 0.5 * delta)
+ */
 class HuberLoss(private val delta: Double = 1.0) : Loss {
     override fun loss(y: D2Array<Double>, yHat: D2Array<Double>): Double {
         val n = y.shape[0] * y.shape[1]
