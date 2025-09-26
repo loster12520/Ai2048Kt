@@ -7,9 +7,9 @@ import org.jetbrains.kotlinx.multik.ndarray.data.D2Array
 import org.jetbrains.kotlinx.multik.ndarray.operations.plus
 
 /**
- * 矩阵加偏置操作。
+ * ### 矩阵加偏置操作。
+ *
  * $Y = X + b$
- * @see [doc/neural.md](../../doc/neural.md)
  */
 infix fun D2Array<Double>.addB(b: D1Array<Double>): D2Array<Double> {
     require(shape[1] == b.shape[0])

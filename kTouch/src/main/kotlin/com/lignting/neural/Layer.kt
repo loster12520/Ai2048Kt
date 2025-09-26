@@ -11,15 +11,26 @@ import kotlin.random.Random
 
 /**
  * 神经网络层接口。
- * 包含前向传播和反向传播方法。
- * @see [doc/neural.md](../../doc/neural.md)
+ *
+ * 该接口定义了所有神经网络层的基本行为，包括前向传播（forward）和反向传播（backward）方法。
+ * 任何实现该接口的类都可以作为神经网络的一层，支持参数更新与信息查询。
+ *
+ * 主要方法：
+ * - forward：前向传播，计算输出。
+ * - backward：反向传播，计算梯度并更新参数。
+ * - copy：深拷贝当前层。
+ * - info：返回层的简要信息。
+ *
+ * 常见实现类：
+ * - Dense：全连接层，拥有可训练参数（权重和偏置），适用于大多数结构。
+ * - Relu/Sigmoid/LeakyRelu/SoftPlus：激活层，无可训练参数，仅做非线性变换。
+ * - Dropout：随机丢弃部分神经元，提升泛化能力。
  */
 interface Layer {
     /**
      * 前向传播
      * @param input 输入数据
      * @return 输出数据
-     * @see [doc/neural.md](../../doc/neural.md)
      */
     fun forward(input: D2Array<Double>): D2Array<Double>
     /**
@@ -30,7 +41,6 @@ interface Layer {
      * @param scheduler 学习率调度器
      * @param epoch 当前轮次
      * @return 梯度
-     * @see [doc/neural.md](../../doc/neural.md)
      */
     fun backward(
         input: D2Array<Double>,
@@ -46,8 +56,35 @@ interface Layer {
 
 /**
  * 全连接层(Dense)。
- * $y = xW + b$
- * @see [doc/neural.md](../../doc/neural.md)
+ *
+ * 该层实现了 $y = xW + b$ 的线性变换，是最常见的神经网络层。
+ *
+ * 构造参数：
+ * - inputSize：输入特征维度。
+ * - outputSize：输出特征维度。
+ * - weight：权重矩阵，形状为 (inputSize, outputSize)。
+ * - bias：偏置向量，形状为 (outputSize)。
+ *
+ * 优点：
+ * - 可学习参数，表达能力强。
+ * - 适用于绝大多数结构。
+ *
+ * 缺点：
+ * - 参数量大，易过拟合。
+ * - 不适合处理空间结构数据（如图像）。
+ *
+ * 同类型对比：
+ * - 卷积层（CNN）适合空间数据，参数更少。
+ * - Dense层适合结构化数据和小型任务。
+ *
+ * 主要数学公式：
+ * - $y = xW + b$
+ *
+ * @param inputSize 输入特征维度
+ * @param outputSize 输出特征维度
+ * @param weight 权重矩阵，形状为(inputSize, outputSize)
+ * @param bias 偏置向量，形状为(outputSize)
+ * @constructor 支持直接传入权重/偏置或通过初始化器生成
  */
 class Dense(
     private val inputSize: Int,
@@ -92,8 +129,26 @@ class Dense(
 
 /**
  * ReLU激活层。
- * $y = \max(0, x)$
- * @see [doc/neural.md](../../doc/neural.md)
+ *
+ * 该层实现 $y = \max(0, x)$ 的非线性变换，是最常用的激活函数之一。
+ *
+ * 构造参数：无。
+ *
+ * 优点：
+ * - 计算高效，收敛快。
+ * - 能有效缓解梯度消失。
+ *
+ * 缺点：
+ * - 神经元可能“死亡”，即输出始终为0。
+ *
+ * 同类型对比：
+ * - LeakyReLU 解决了死亡神经元问题。
+ * - Sigmoid/SoftPlus 收敛慢但更平滑。
+ *
+ * 主要数学公式：
+ * - $y = \max(0, x)$
+ *
+ * @constructor 无参数
  */
 class Relu() : Layer {
     override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { max(it, 0.0) }
@@ -109,8 +164,29 @@ class Relu() : Layer {
 
 /**
  * Sigmoid激活层。
- * $y = \frac{1}{1 + e^{-x}}$
- * @see [doc/neural.md](../../doc/neural.md)
+ *
+ * 该层实现 $y = \frac{1}{1 + e^{-x}}$ 的非线性变换，常用于二分类。
+ *
+ * 构造参数：
+ * - zoom：缩放因子，控制输入的缩放，默认为1。
+ *
+ * 优点：
+ * - 输出范围在(0,1)，适合概率建模。
+ * - 理论成熟，易于理解。
+ *
+ * 缺点：
+ * - 容易出现梯度消失。
+ * - 收敛速度慢。
+ *
+ * 同类型对比：
+ * - Relu收敛快但不适合概率输出。
+ * - SoftPlus更平滑但计算复杂。
+ *
+ * 主要数学公式：
+ * - $y = \frac{1}{1 + e^{-x}}$
+ *
+ * @param zoom 缩放因子，控制输入的缩放，默认为1
+ * @constructor zoom: Int
  */
 class Sigmoid(val zoom: Int = 1) : Layer {
     override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { 1 / (1 + exp(-it / zoom)) }
@@ -126,8 +202,28 @@ class Sigmoid(val zoom: Int = 1) : Layer {
 
 /**
  * LeakyReLU激活层。
- * $y = \max(\alpha x, x)$
- * @see [doc/neural.md](../../doc/neural.md)
+ *
+ * 该层实现 $y = \max(\alpha x, x)$ 的非线性变换，解决ReLU的“死亡神经元”问题。
+ *
+ * 构造参数：
+ * - alpha：负区间斜率，默认为0.01。
+ *
+ * 优点：
+ * - 保留负区间的微小梯度，避免神经元死亡。
+ * - 收敛速度快。
+ *
+ * 缺点：
+ * - 需手动设置alpha参数。
+ *
+ * 同类型对比：
+ * - Relu简单但有死亡神经元。
+ * - SoftPlus更平滑但计算复杂。
+ *
+ * 主要数学公式：
+ * - $y = \max(\alpha x, x)$
+ *
+ * @param alpha 负区间斜率，默认为0.01
+ * @constructor alpha: Double
  */
 class LeakyRelu(private val alpha: Double = 0.01) : Layer {
     override fun forward(input: D2Array<Double>): D2Array<Double> = input.map { if (it > 0) it else alpha * it }
@@ -143,8 +239,31 @@ class LeakyRelu(private val alpha: Double = 0.01) : Layer {
 
 /**
  * SoftPlus激活层。
- * $y = \log(1 + e^x)$
- * @see [doc/neural.md](../../doc/neural.md)
+ *
+ * 该层实现 $y = \log(1 + e^x)$ 的平滑激活函数。
+ *
+ * 构造参数：
+ * - base：对数底数，默认为2.0。
+ * - maxClip：输入裁剪范围，防止溢出，默认为700.0。
+ *
+ * 优点：
+ * - 平滑且连续，梯度稳定。
+ * - 理论上可近似ReLU。
+ *
+ * 缺点：
+ * - 计算复杂度高。
+ * - 收敛速度慢于ReLU。
+ *
+ * 同类型对比：
+ * - Relu收敛快但不平滑。
+ * - Sigmoid适合概率输出。
+ *
+ * 主要数学公式：
+ * - $y = \log(1 + e^x)$
+ *
+ * @param base 对数底数，默认为2.0
+ * @param maxClip 输入裁剪范围，防止溢出，默认为700.0
+ * @constructor base/maxClip: Double
  */
 class SoftPlus(private val base: Double = 2.0, private val maxClip: Double = 700.0) : Layer {
     override fun forward(input: D2Array<Double>) =
@@ -172,8 +291,26 @@ class SoftPlus(private val base: Double = 2.0, private val maxClip: Double = 700
 
 /**
  * Dropout层。
- * 随机丢弃部分神经元。
- * @see [doc/neural.md](../../doc/neural.md)
+ *
+ * 该层在训练时随机丢弃部分神经元，提升模型泛化能力。
+ *
+ * 构造参数：
+ * - dropout：丢弃概率，默认为0.5。
+ *
+ * 优点：
+ * - 有效防止过拟合。
+ * - 实现简单，适用于各种网络。
+ *
+ * 缺点：
+ * - 仅在训练时有效，推理时需关闭。
+ * - 可能导致收敛变慢。
+ *
+ * 同类型对比：
+ * - BatchNorm通过归一化提升泛化。
+ * - Dropout通过随机丢弃提升泛化。
+ *
+ * @param dropout 丢弃概率，默认为0.5
+ * @constructor dropout: Double
  */
 class Dropout(private val dropout: Double = 0.5) : Layer {
     private var mask: D2Array<Double>? = null

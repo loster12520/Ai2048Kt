@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.0.20"
+    id("org.jetbrains.dokka") version "2.0.0"
 }
 
 group = "com.lignting"
@@ -13,7 +14,4 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
-}
-kotlin {
-    jvmToolchain(18)
 }
