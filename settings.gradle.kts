@@ -15,4 +15,5 @@ dependencyResolutionManagement {
 }
 
 include(":kTouch")
+include(":kTensor")
 include(":example")
