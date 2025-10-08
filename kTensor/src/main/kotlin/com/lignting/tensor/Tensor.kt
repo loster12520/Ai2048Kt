@@ -89,3 +89,8 @@ inline fun <reified T : NumberTypes> Tensor<T>.expand(dimension: Int): List<Tens
     }
     return result.map { Tensor(resultShape, it.toTypedArray()) }
 }
+
+fun <T : NumberTypes> Tensor<T>.broadcast(shape: IntArray): Tensor<T> {
+    
+    TODO()
+}
