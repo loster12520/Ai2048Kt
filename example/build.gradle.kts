@@ -11,6 +11,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:multik-default:0.2.3")
     implementation("org.jetbrains.kotlinx:dataframe:0.15.0")
     implementation("org.jetbrains.kotlinx:kandy-lets-plot:0.7.1")
+    implementation("com.jsoizo:kotlin-csv-jvm:1.10.0")
     implementation(project(":kTouch"))
 }
 

@@ -1,11 +1,17 @@
 package com.lignting.neural
 
+import org.jetbrains.kotlinx.multik.api.mk
+import org.jetbrains.kotlinx.multik.api.ndarray
 import org.jetbrains.kotlinx.multik.ndarray.data.D2Array
+import org.jetbrains.kotlinx.multik.ndarray.data.get
+import org.jetbrains.kotlinx.multik.ndarray.data.set
 import org.jetbrains.kotlinx.multik.ndarray.operations.map
 import org.jetbrains.kotlinx.multik.ndarray.operations.minus
 import org.jetbrains.kotlinx.multik.ndarray.operations.reduce
 import org.jetbrains.kotlinx.multik.ndarray.operations.sum
+import org.jetbrains.kotlinx.multik.ndarray.operations.toList
 import kotlin.math.abs
+import kotlin.math.ln
 import kotlin.math.pow
 
 /**
@@ -34,6 +40,7 @@ interface Loss {
      * @return 损失值（Double）
      */
     fun loss(y: D2Array<Double>, yHat: D2Array<Double>): Double
+    
     /**
      * 损失反向传播
      * @param y 真实值，形状为(batchSize, outputSize)
@@ -67,12 +74,12 @@ class Mse : Loss {
             a + (i.pow(2))
         } / n
     }
-
+    
     override fun backward(y: D2Array<Double>, yHat: D2Array<Double>): D2Array<Double> {
         val n = y.shape[0] * y.shape[1]
         return (y - yHat).map { -it * 2 / n }
     }
-
+    
 }
 
 /**
@@ -99,7 +106,7 @@ class Mae : Loss {
             a + (abs(i))
         } / n
     }
-
+    
     override fun backward(y: D2Array<Double>, yHat: D2Array<Double>): D2Array<Double> {
         val n = y.shape[0] * y.shape[1]
         return (y - yHat).map { if (it > 0) -1.0 / n else if (it < 0) 1.0 / n else 0.0 }
@@ -135,7 +142,7 @@ class HuberLoss(private val delta: Double = 1.0) : Loss {
             }
         }.sum() / n
     }
-
+    
     override fun backward(y: D2Array<Double>, yHat: D2Array<Double>): D2Array<Double> {
         val n = y.shape[0] * y.shape[1]
         return (y - yHat).map { diff ->
@@ -145,5 +152,52 @@ class HuberLoss(private val delta: Double = 1.0) : Loss {
                 else -> delta / n
             }
         }
+    }
+}
+
+/**
+ * ### 交叉熵损失。
+ *
+ * 适用于分类任务，衡量概率分布差异。
+ *
+ * 优点：适合分类任务，概率解释清晰。
+ * 缺点：对错误预测惩罚大，可能导致梯度爆炸。
+ *
+ * 同类型对比：与MSE/MAE不同，专为分类设计。
+ *
+ * 主要数学公式：
+ * - $L = -\sum y \log(\hat{y})$
+ *
+ * @param y 真实值（独热编码），形状为(batchSize, numClasses)
+ * @param yHat 预测值（概率分布），形状为(batchSize, numClasses)
+ * @return 损失值/梯度
+ */
+class CrossEntropy(val epsilon: Double = 1e-8) : Loss {
+    override fun loss(y: D2Array<Double>, yHat: D2Array<Double>): Double {
+        val n = y.shape[0]
+        var totalLoss = 0.0
+        
+        for (i in 0 until n) {
+            for (j in 0 until y.shape[1]) {
+                // 交叉熵公式: -Σ(y * log(yHat))
+                totalLoss += -y[i, j] * ln(yHat[i, j] + epsilon)
+            }
+        }
+        
+        return totalLoss / n
+    }
+    
+    override fun backward(y: D2Array<Double>, yHat: D2Array<Double>): D2Array<Double> {
+        val n = y.shape[0]
+        val gradients = List(y.shape[0]) { List(y.shape[1]) { 0.0 } }.let { mk.ndarray(it) }
+        
+        for (i in 0 until n) {
+            for (j in 0 until y.shape[1]) {
+                // 交叉熵的梯度: -y / yHat
+                gradients[i, j] = -y[i, j] / (yHat[i, j] + epsilon) / n
+            }
+        }
+        
+        return gradients
     }
 }
