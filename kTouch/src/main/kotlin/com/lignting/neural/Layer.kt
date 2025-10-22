@@ -4,6 +4,8 @@ import org.jetbrains.kotlinx.multik.api.*
 import org.jetbrains.kotlinx.multik.api.linalg.dot
 import org.jetbrains.kotlinx.multik.ndarray.data.D1Array
 import org.jetbrains.kotlinx.multik.ndarray.data.D2Array
+import org.jetbrains.kotlinx.multik.ndarray.data.get
+import org.jetbrains.kotlinx.multik.ndarray.data.set
 import org.jetbrains.kotlinx.multik.ndarray.operations.map
 import org.jetbrains.kotlinx.multik.ndarray.operations.times
 import kotlin.math.*
@@ -33,6 +35,7 @@ interface Layer {
      * @return 输出数据
      */
     fun forward(input: D2Array<Double>): D2Array<Double>
+
     /**
      * 反向传播
      * @param input 输入数据
@@ -113,13 +116,12 @@ class Dense(
     ): D2Array<Double> {
         if (optimizerCopy == null)
             optimizerCopy = optimizer
-        val m = input.shape[1]
-        val dWeight =
-            (forwardOutput.transpose() dot input).map { 1.0 / m * it }
-        val dBias = mk.math.sumD2(input, 0).map { 1.0 / m * it }
+        val m = input.shape[0]
+        val dWeight = (input.transpose() dot forwardOutput).map { it / m }
+        val dBias = mk.math.sumD2(forwardOutput, 0).map { it / m }
         weight = optimizerCopy!!.optimizeW(weight, dWeight, scheduler, epoch)
         bias = optimizerCopy!!.optimizeB(bias, dBias, scheduler, epoch)
-        return input dot weight.transpose()
+        return forwardOutput dot weight.transpose()
     }
 
     override fun copy(): Layer = Dense(inputSize, outputSize, weight.deepCopy(), bias.deepCopy())
@@ -287,6 +289,52 @@ class SoftPlus(private val base: Double = 2.0, private val maxClip: Double = 700
     override fun copy() = SoftPlus(base, maxClip)
 
     override fun info() = "SoftPlus()"
+}
+
+class Softmax : Layer {
+    override fun forward(input: D2Array<Double>): D2Array<Double> {
+        val (batch, classes) = input.shape
+        val result = mk.zeros<Double>(batch, classes)
+        for (i in 0 until batch) {
+            // 计算数值稳定的 softmax
+            var maxVal = Double.NEGATIVE_INFINITY
+            for (j in 0 until classes) {
+                if (input[i, j] > maxVal) maxVal = input[i, j]
+            }
+            val exps = DoubleArray(classes) { j -> exp(input[i, j] - maxVal) }
+            val sumExp = exps.sum()
+            for (j in 0 until classes) {
+                result[i, j] = exps[j] / sumExp
+            }
+        }
+        return result
+    }
+
+    override fun backward(
+        input: D2Array<Double>,
+        forwardOutput: D2Array<Double>,
+        optimizer: Optimizer,
+        scheduler: Scheduler,
+        epoch: Int
+    ): D2Array<Double> {
+        val probs = forward(input)
+        val (batch, classes) = probs.shape
+        val gradInput = mk.zeros<Double>(batch, classes)
+        for (i in 0 until batch) {
+            for (j in 0 until classes) {
+                var sum = 0.0
+                for (k in 0 until classes) {
+                    val delta = if (j == k) 1 - probs[i, k] else -probs[i, k]
+                    sum += forwardOutput[i, k] * probs[i, j] * delta
+                }
+                gradInput[i, j] = sum
+            }
+        }
+        return gradInput
+    }
+
+    override fun copy() = Softmax()
+    override fun info() = "Softmax()"
 }
 
 /**

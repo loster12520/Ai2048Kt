@@ -29,9 +29,9 @@ import org.jetbrains.kotlinx.multik.ndarray.operations.toListD2
  */
 class Model(
     vararg layers: Layer,
-    private val loss: Loss = Mse(),
-    private val optimizer: Optimizer = GradientDescent(),
-    private val scheduler: Scheduler = StepDecayScheduler(0.01)
+    var loss: Loss = Mse(),
+    var optimizer: Optimizer = GradientDescent(),
+    var scheduler: Scheduler = StepDecayScheduler(0.01)
 ) {
     private val layerList = layers.toList()
 
@@ -67,8 +67,8 @@ class Model(
         layerList.zip(aList.dropLast(1)).asReversed().forEach { (layer, A) ->
             dList.add(
                 layer.backward(
-                    dList.last(),
                     A,
+                    dList.last(),
                     optimizer.copy(),
                     scheduler,
                     epoch
