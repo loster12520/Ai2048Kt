@@ -185,6 +185,13 @@ class Adam(
     var sBias: D1Array<Double>? = null
     var wTimes: Int = 1
     var bTimes: Int = 1
+
+    // 使用滚动因子代替每次 pow 调用
+    private var beta1PowW = 1.0
+    private var beta2PowW = 1.0
+    private var beta1PowB = 1.0
+    private var beta2PowB = 1.0
+
     override fun optimizeW(
         parameters: D2Array<Double>, grads: D2Array<Double>, scheduler: Scheduler, epoch: Int
     ): D2Array<Double> {
@@ -192,13 +199,21 @@ class Adam(
             vWeight = mk.zeros(parameters.shape, DataType.DoubleDataType)
             sWeight = mk.zeros(parameters.shape, DataType.DoubleDataType)
         }
-        val clippedGrads = grads.map { min(max(it, -maxGradBound), maxGradBound) }
-        vWeight = vWeight!!.map { it * beta1 } + clippedGrads.map { it * (1 - beta1) }
-        val vCorrected = vWeight!!.map { it / (1 - beta1.pow(wTimes)) }
-        sWeight = sWeight!!.map { it * beta2 } + (clippedGrads * clippedGrads).map { it * (1 - beta2) }
-        val sCorrected = sWeight!!.map { it / (1 - beta2.pow(wTimes)) }
-        wTimes++
-        return parameters - (vCorrected / sCorrected.map { it.pow(0.5) + epsilon }).map { it * scheduler.getLearningRate(epoch) }
+        val lr = scheduler.getLearningRate(epoch)
+        val clipped = grads.map { min(max(it, -maxGradBound), maxGradBound) }
+
+        // 更新一阶和二阶矩（尽量合并分配）
+        vWeight = vWeight!!.map { it * beta1 } + clipped.map { it * (1 - beta1) }
+        sWeight = sWeight!!.map { it * beta2 } + (clipped * clipped).map { it * (1 - beta2) }
+
+        // 更新滚动幂（避免 pow 调用）
+        beta1PowW *= beta1
+        beta2PowW *= beta2
+        val vHat = vWeight!!.map { it / (1.0 - beta1PowW) }
+        val sHat = sWeight!!.map { it / (1.0 - beta2PowW) }
+
+        val denom = sHat.map { kotlin.math.sqrt(it) + epsilon }
+        return parameters - (vHat / denom).map { it * lr }
     }
 
     override fun optimizeB(
@@ -208,13 +223,20 @@ class Adam(
             vBias = mk.zeros(parameters.shape, DataType.DoubleDataType)
             sBias = mk.zeros(parameters.shape, DataType.DoubleDataType)
         }
-        val clippedGrads = grads.map { min(max(it, -maxGradBound), maxGradBound) }
-        vBias = vBias!!.map { it * beta1 } + clippedGrads.map { it * (1 - beta1) }
-        val vCorrected = vBias!!.map { it / (1 - beta1.pow(bTimes)) }
-        sBias = sBias!!.map { it * beta2 } + (clippedGrads * clippedGrads).map { it * (1 - beta2) }
-        val sCorrected = sBias!!.map { it / (1 - beta2.pow(bTimes)) }
-        bTimes++
-        return parameters - (vCorrected / sCorrected.map { it.pow(0.5) + epsilon }).map { it * scheduler.getLearningRate(epoch) }
+
+        val lr = scheduler.getLearningRate(epoch)
+        val clipped = grads.map { min(max(it, -maxGradBound), maxGradBound) }
+
+        vBias = vBias!!.map { it * beta1 } + clipped.map { it * (1 - beta1) }
+        sBias = sBias!!.map { it * beta2 } + (clipped * clipped).map { it * (1 - beta2) }
+
+        beta1PowB *= beta1
+        beta2PowB *= beta2
+        val vHat = vBias!!.map { it / (1.0 - beta1PowB) }
+        val sHat = sBias!!.map { it / (1.0 - beta2PowB) }
+
+        val denom = sHat.map { kotlin.math.sqrt(it) + epsilon }
+        return parameters - (vHat / denom).map { it * lr }
     }
 
     override fun copy() = Adam(beta1, beta2, epsilon, maxGradBound)

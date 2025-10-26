@@ -117,8 +117,8 @@ class Dense(
         if (optimizerCopy == null)
             optimizerCopy = optimizer
         val m = input.shape[0]
-        val dWeight = (input.transpose() dot forwardOutput).map { it / m }
-        val dBias = mk.math.sumD2(forwardOutput, 0).map { it / m }
+        val dWeight = (input.transpose() dot forwardOutput).times(1.0 / m)
+        val dBias = mk.math.sumD2(forwardOutput, 0).times(1.0 / m)
         weight = optimizerCopy!!.optimizeW(weight, dWeight, scheduler, epoch)
         bias = optimizerCopy!!.optimizeB(bias, dBias, scheduler, epoch)
         return forwardOutput dot weight.transpose()

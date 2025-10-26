@@ -49,86 +49,60 @@ inline operator fun <reified T : NumberTypes> Tensor<T>.plus(other: Double) =
         else -> throw IllegalArgumentException("Unsupported type")
     }
 
-///**
-// * ## 整数Tensor与整数Tensor加法
-// *
-// * 整数Tensor与整数Tensor相加，支持广播机制。
-// *
-// * 返回结果shape与this相同，other会被广播到this的shape。
-// *
-// * @param other 另一个张量
-// * @return 加法结果
-// */
-//operator fun Tensor<IntNumber>.plus(other: Tensor<IntNumber>): Tensor<IntNumber> = Tensor(
-//    shape = this.shape,
-//    data = this.data.zip(
-//        if (other.shape.contentEquals(this.shape)) {
-//            other
-//        } else {
-//            other.broadcast(this.shape)
-//        }.data
-//    ) { a, b -> (a.toInt() + b.toInt()).typeInt() }.toTypedArray(),
-//)
-//
-///**
-// * ## 整数Tensor与浮点Tensor加法
-// *
-// * 整数Tensor与浮点Tensor相加，支持广播机制。
-// *
-// * 返回结果shape与this相同，other会被广播到this的shape。
-// *
-// * @param other 另一个张量
-// * @return 加法结果
-// */
-//operator fun Tensor<IntNumber>.plus(other: Tensor<DoubleNumber>): Tensor<DoubleNumber> = Tensor(
-//    shape = this.shape,
-//    data = this.data.zip(
-//        if (other.shape.contentEquals(this.shape)) {
-//            other
-//        } else {
-//            other.broadcast(this.shape)
-//        }.data
-//    ) { a, b -> (a.toInt() + b.toDouble()).typeDouble() }.toTypedArray(),
-//)
-//
-///**
-// * ## 浮点Tensor与浮点Tensor加法
-// *
-// * 浮点Tensor与浮点Tensor相加，支持广播机制。
-// *
-// * 返回结果shape与this相同，other会被广播到this的shape。
-// *
-// * @param other 另一个张量
-// * @return 加法结果
-// */
-//operator fun Tensor<DoubleNumber>.plus(other: Tensor<DoubleNumber>): Tensor<DoubleNumber> = Tensor(
-//    shape = this.shape,
-//    data = this.data.zip(
-//        if (other.shape.contentEquals(this.shape)) {
-//            other
-//        } else {
-//            other.broadcast(this.shape)
-//        }.data
-//    ) { a, b -> (a.toDouble() + b.toDouble()).typeDouble() }.toTypedArray(),
-//)
-//
-///**
-// * ## 浮点Tensor与整数Tensor加法
-// *
-// * 浮点Tensor与整数Tensor相加，支持广播机制。
-// *
-// * 返回结果shape与this相同，other会被广播到this的shape。
-// *
-// * @param other 另一个张量
-// * @return 加法结果
-// */
-//operator fun Tensor<DoubleNumber>.plus(other: Tensor<IntNumber>): Tensor<DoubleNumber> = Tensor(
-//    shape = this.shape,
-//    data = this.data.zip(
-//        if (other.shape.contentEquals(this.shape)) {
-//            other
-//        } else {
-//            other.broadcast(this.shape)
-//        }.data
-//    ) { a, b -> (a.toDouble() + b.toInt()).typeDouble() }.toTypedArray(),
-//)
+/**
+ * ## Tensor与Tensor加法
+ *
+ * Tensor与Tensor按元素相加，支持广播机制。
+ *
+ * @param other 另一个Tensor
+ * @return 加法结果
+ */
+inline operator fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.plus(other: Tensor<F>): Tensor<NumberTypes> =
+    when {
+        T::class == IntNumber::class && F::class == IntNumber::class -> Tensor(
+            shape = this.shape,
+            data = this.data.zip(
+                if (other.shape.contentEquals(this.shape)) {
+                    other
+                } else {
+                    other.broadcast(this.shape)
+                }.data
+            ) { a, b -> ((a as IntNumber).toInt() + (b as IntNumber).toInt()).typeInt() }.toTypedArray(),
+        )
+
+        T::class == IntNumber::class && F::class == DoubleNumber::class -> Tensor(
+            shape = this.shape,
+            data = this.data.zip(
+                if (other.shape.contentEquals(this.shape)) {
+                    other
+                } else {
+                    other.broadcast(this.shape)
+                }.data
+            ) { a, b -> ((a as IntNumber).toInt() + (b as DoubleNumber).toDouble()).typeDouble() }.toTypedArray(),
+        )
+
+        T::class == DoubleNumber::class && F::class == DoubleNumber::class -> Tensor(
+            shape = this.shape,
+            data = this.data.zip(
+                if (other.shape.contentEquals(this.shape)) {
+                    other
+                } else {
+                    other.broadcast(this.shape)
+                }.data
+            ) { a, b -> ((a as DoubleNumber).toDouble() + (b as DoubleNumber).toDouble()).typeDouble() }.toTypedArray(),
+        )
+
+        T::class == DoubleNumber::class && F::class == IntNumber::class -> Tensor(
+            shape = this.shape,
+            data = this.data.zip(
+                if (other.shape.contentEquals(this.shape)) {
+                    other
+                } else {
+                    other.broadcast(this.shape)
+                }.data
+            ) { a, b -> ((a as DoubleNumber).toDouble() + (b as IntNumber).toInt()).typeDouble() }.toTypedArray(),
+        )
+
+        else -> throw IllegalArgumentException("Unsupported type")
+    }
+

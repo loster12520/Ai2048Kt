@@ -84,6 +84,14 @@ class IntNumber(private val value: Int) : IntNumberTypes {
     } else {
         false
     }
+
+    override fun toString(): String {
+        return value.toString()
+    }
+
+    override fun hashCode(): Int {
+        return value.hashCode()
+    }
 }
 
 /**
@@ -159,6 +167,14 @@ class DoubleNumber(private val value: Double) : FloatNumberTypes {
         this.value == other.value
     } else {
         false
+    }
+
+    override fun toString(): String {
+        return value.toString()
+    }
+
+    override fun hashCode(): Int {
+        return value.hashCode()
     }
 }
 

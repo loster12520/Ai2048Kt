@@ -3,6 +3,10 @@ package com.lignting.example
 import java.io.File
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import com.lignting.neural.*
+import org.jetbrains.kotlinx.dataframe.api.dataFrameOf
+import org.jetbrains.kotlinx.kandy.dsl.plot
+import org.jetbrains.kotlinx.kandy.letsplot.export.save
+import org.jetbrains.kotlinx.kandy.letsplot.layers.line
 import org.jetbrains.kotlinx.multik.api.mk
 import org.jetbrains.kotlinx.multik.api.ndarray
 import org.jetbrains.kotlinx.multik.ndarray.data.D1Array
@@ -28,24 +32,44 @@ fun main() {
     val model = Model(
         Dense(784, 40, HeUniformInitialize()),
         LeakyRelu(),
+        Dropout(0.2),
         Dense(40, 20, HeUniformInitialize()),
         LeakyRelu(),
+        Dropout(0.2),
         Dense(20, 10, HeUniformInitialize()),
         Softmax(),
         loss = CrossEntropy(),
         optimizer = Adam(),
-        scheduler = ExponentialScheduler(3e-3, dropRate = 1.0)
+        scheduler = ExponentialScheduler(1e-4, dropRate = 1.0 - 1e-2)
     )
     val (trainX, trainY) = trainData
     val (testX, testY) = testData
 
-    val epochs = 10
-    for (epoch in 1..epochs) {
+    val epochs = 100
+    val (lossList, evaluateList) = (0..epochs).map { epoch ->
         val loss = model.fitWithBatchSize(trainX, trainY, epoch, 100)
         val evaluate = model.evaluate(testX, testY)
         println("Epoch $epoch: Train Loss = $loss, Test Evaluate = $evaluate")
+        loss to evaluate
+    }.let {
+        it.map { it.first } to it.map { it.second }
     }
     println("Training complete.")
+
+    // 可视化结果
+    val dataframe = dataFrameOf(
+        "epochs" to List(lossList.size) { index -> index } + List(evaluateList.size) { index -> index },
+        "loss" to lossList + evaluateList,
+        "category" to lossList.map { "train" } + evaluateList.map { "test" }
+    )
+    val plot = dataframe.plot {
+        line {
+            x("epochs")
+            y("loss")
+            color("category")
+        }
+    }
+    plot.save("mnist_loss_plot.png")
 
     val predict = model.predict(testX)
     println(

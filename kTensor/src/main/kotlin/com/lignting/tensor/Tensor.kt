@@ -154,3 +154,73 @@ inline fun <reified T : NumberTypes> Tensor<T>.broadcast(newShape: IntArray): Te
     }
     return result
 }
+
+/**
+ * ## 判断是否为整数Tensor
+ *
+ * 判断当前Tensor的数据类型是否为整数类型
+ *
+ * @return 如果是整数Tensor则返回true，否则返回false
+ */
+inline fun <reified T : NumberTypes> Tensor<T>.isIntTensor(): Boolean =
+    T::class == IntNumber::class
+
+/**
+ * ## 判断是否为浮点Tensor
+ *
+ * 判断当前Tensor的数据类型是否为浮点类型
+ *
+ * @return 如果是浮点Tensor则返回true，否则返回false
+ */
+inline fun <reified T : NumberTypes> Tensor<T>.isDoubleTensor(): Boolean =
+    T::class == DoubleNumber::class
+
+/**
+ * ## 转换为整数Tensor
+ *
+ * 将当前Tensor转换为整数类型的Tensor
+ *
+ * 注意：调用本函数不会继承原有Tensor的反向传播函数和更新列表
+ *
+ * @return 转换后的整数Tensor
+ */
+inline fun <reified T : NumberTypes> Tensor<T>.toIntTensor(): Tensor<IntNumber> =
+    if (T::class == IntNumber::class) {
+        this as Tensor<IntNumber>
+    } else {
+        Tensor(
+            shape = this.shape,
+            data = this.data.map {
+                when (it) {
+                    is IntNumber -> it
+                    is DoubleNumber -> IntNumber((it as Double).toInt())
+                    else -> throw IllegalArgumentException("Unsupported type")
+                }
+            }.toTypedArray()
+        )
+    }
+
+/**
+ * ## 转换为浮点Tensor
+ *
+ * 将当前Tensor转换为浮点类型的Tensor
+ *
+ * 注意：调用本函数不会继承原有Tensor的反向传播函数和更新列表
+ *
+ * @return 转换后的浮点Tensor
+ */
+inline fun <reified T : NumberTypes> Tensor<T>.toDoubleTensor(): Tensor<DoubleNumber> =
+    if (T::class == DoubleNumber::class) {
+        this as Tensor<DoubleNumber>
+    } else {
+        Tensor(
+            shape = this.shape,
+            data = this.data.map {
+                when (it) {
+                    is DoubleNumber -> it
+                    is IntNumber -> DoubleNumber((it as Int).toDouble())
+                    else -> throw IllegalArgumentException("Unsupported type")
+                }
+            }.toTypedArray()
+        )
+    }
