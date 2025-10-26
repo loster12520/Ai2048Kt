@@ -53,8 +53,8 @@ class TensorOperatorKtTest {
     fun testPlusBoardCast() {
         val intTensor = tensorIntOf(1, 2, 3, 4, 5, 6).reshape(2, 3, 1)
         val doubleTensor = tensorDoubleOf(1.0, 2.0, 3.0, 4.0, 5.0, 6.0).reshape(2, 3, 1)
-        val intTensor2 = tensorIntOf(1, 2).reshape(2, 1, 1)
-        val doubleTensor2 = tensorDoubleOf(1.0, 2.0).reshape(2, 1, 1)
+        val intTensor2 = tensorIntOf(1, 2).reshape(2)
+        val doubleTensor2 = tensorDoubleOf(1.0, 2.0).reshape(2)
 
         val intTensorPlusIntTensor = intTensor + intTensor2
         val intTensorPlusDoubleTensor = intTensor + doubleTensor2

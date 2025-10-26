@@ -103,20 +103,40 @@ inline fun <reified T : NumberTypes> Tensor<T>.expand(dimension: Int): List<Tens
  * @param newLength 新的长度
  * @return 广播后的Tensor
  */
-inline fun <reified T : NumberTypes> Tensor<T>.broadcastOne(dim: Int, newLength: Int): Tensor<T> {
-    assert(dim in shape.indices) { "dimension $dim out of range for shape ${shape.contentToString()}" }
-    assert(shape[dim] == 1) { "Can only broadcast dimension of size 1, but got ${shape[dim]} at dimension $dim" }
-    val groupSize = shape.filterIndexed { index, _ -> index < dim }.fold(1) { acc, i -> acc * i }
+inline fun <reified T : NumberTypes> Tensor<T>.broadcastOne(dim: Int, newLength: Int): Tensor<T> =
+    if (dim in shape.indices) {
+        broadcastOneStrict(this, dim, newLength)
+    } else {
+        val newShape = List(dim + 1) { shape.getOrNull(it) ?: 1 }.toIntArray()
+        broadcastOneStrict(this.reshape(*newShape), dim, newLength)
+    }
 
-    val newShape = shape.toMutableList().apply { this[dim] = newLength }.toIntArray()
-    val newData = data.mapIndexed { index, t -> index to t }.groupBy { it.first / groupSize }.map { (_, v) ->
+/**
+ * ## 广播Tensor到新长度
+ *
+ * 将指定维度的长度从1扩展到新的长度
+ *
+ * 例如，`shape`为`[3,1,2]`的张量`[[[1,2,3]],[[4,5,6]]]`，调用`broadcastOne(tensor, 1, 2)`后，变成了`[[[1,2,3],[1,2,3]],[[4,5,6],[4,5,6]]]`，shape为`[3,2,2]`
+ *
+ * 注意：该操作会返回一个新的Tensor，实际数据存储不会被改变；以及，这个函数默认传入的维度一定在当前Tensor的范围内
+ *
+ * @param tensor 需要广播的Tensor
+ * @param dim 维度索引
+ * @param newLength 新的长度
+ * @return 广播后的Tensor
+ */
+inline fun <reified T : NumberTypes> broadcastOneStrict(tensor: Tensor<T>, dim: Int, newLength: Int): Tensor<T> {
+    assert(tensor.shape[dim] == 1) { "Can only broadcast dimension of size 1, but got ${tensor.shape[dim]} at dimension $dim" }
+    val groupSize = tensor.shape.filterIndexed { index, _ -> index < dim }.fold(1) { acc, i -> acc * i }
+    val newShape = tensor.shape.toMutableList().apply { this[dim] = newLength }.toIntArray()
+    val newData = tensor.data.mapIndexed { index, t -> index to t }.groupBy { it.first / groupSize }.map { (_, v) ->
         List(newLength) { v.map { it.second } }.flatten()
     }.flatten().toTypedArray<T>()
     return Tensor(
         shape = newShape,
         data = newData,
-        backwardFunction = backwardFunction,
-        updateList = updateList
+        backwardFunction = tensor.backwardFunction,
+        updateList = tensor.updateList
     )
 }
 
