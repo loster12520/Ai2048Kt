@@ -1,142 +1,6 @@
 package com.lignting.tensor
 
 import com.lignting.number.*
-import kotlin.collections.map
-
-/**
- * ## 类型操作接口
- *
- * 定义了int和double互相的操作，用来使用下面的`tensorWith`函数实现各种算术运算。
- *
- * @author Lightning
- */
-interface TypeOperator {
-    val intWithInt: (Int, Int) -> Int
-    val intWithDouble: (Int, Double) -> Double
-    val doubleWithInt: (Double, Int) -> Double
-    val doubleWithDouble: (Double, Double) -> Double
-}
-
-/**
- * ## Tensor与标量操作
- *
- * Tensor与标量进行指定操作，返回新的Tensor。
- *
- * @param other 标量
- * @param typeOperator 类型操作接口
- * @return 操作结果Tensor
- */
-inline fun <reified T : NumberTypes> Tensor<T>.tensorWith(other: Int, typeOperator: TypeOperator) =
-    when (T::class) {
-        IntNumber::class -> Tensor(
-            shape = this.shape,
-            data = this.data.map { (it as IntNumber).toInt().let { typeOperator.intWithInt(it, other) } }
-                .map { it.typeInt() }.toTypedArray(),
-        )
-
-        DoubleNumber::class -> Tensor(
-            shape = this.shape,
-            data = this.data.map { (it as DoubleNumber).toDouble().let { typeOperator.doubleWithInt(it, other) } }
-                .map { it.typeDouble() }.toTypedArray(),
-        )
-
-        else -> throw IllegalArgumentException("Unsupported type")
-    }
-
-/**
- * ## Tensor与标量操作
- *
- * Tensor与标量进行指定操作，返回新的Tensor。
- *
- * @param other 标量
- * @param typeOperator 类型操作接口
- * @return 操作结果Tensor
- */
-inline fun <reified T : NumberTypes> Tensor<T>.tensorWith(other: Double, typeOperator: TypeOperator) =
-    when (T::class) {
-        IntNumber::class -> Tensor(
-            shape = this.shape,
-            data = this.data.map { (it as IntNumber).toInt().let { typeOperator.intWithDouble(it, other) } }
-                .map { it.typeInt() }.toTypedArray(),
-        )
-
-        DoubleNumber::class -> Tensor(
-            shape = this.shape,
-            data = this.data.map { (it as DoubleNumber).toDouble().let { typeOperator.doubleWithDouble(it, other) } }
-                .map { it.typeDouble() }.toTypedArray(),
-        )
-
-        else -> throw IllegalArgumentException("Unsupported type")
-    }
-
-/**
- * ## Tensor与Tensor操作
- *
- * Tensor与Tensor按元素进行指定操作，支持广播机制，返回新的Tensor。
- *
- * @param other 另一个Tensor
- * @param typeOperator 类型操作接口
- * @return 操作结果Tensor
- */
-inline fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.tensorWith(
-    other: Tensor<F>,
-    typeOperator: TypeOperator
-): Tensor<NumberTypes> =
-    when {
-        T::class == IntNumber::class && F::class == IntNumber::class -> Tensor(
-            shape = this.shape,
-            data = this.data.zip(
-                if (other.shape.contentEquals(this.shape)) {
-                    other
-                } else {
-                    other.broadcast(this.shape)
-                }.data
-            ) { a, b -> typeOperator.intWithInt((a as IntNumber).toInt(), (b as IntNumber).toInt()).typeInt() }
-                .toTypedArray(),
-        )
-
-        T::class == IntNumber::class && F::class == DoubleNumber::class -> Tensor(
-            shape = this.shape,
-            data = this.data.zip(
-                if (other.shape.contentEquals(this.shape)) {
-                    other
-                } else {
-                    other.broadcast(this.shape)
-                }.data
-            ) { a, b ->
-                typeOperator.intWithDouble((a as IntNumber).toInt(), (b as DoubleNumber).toDouble()).typeDouble()
-            }.toTypedArray(),
-        )
-
-        T::class == DoubleNumber::class && F::class == DoubleNumber::class -> Tensor(
-            shape = this.shape,
-            data = this.data.zip(
-                if (other.shape.contentEquals(this.shape)) {
-                    other
-                } else {
-                    other.broadcast(this.shape)
-                }.data
-            ) { a, b ->
-                typeOperator.doubleWithDouble((a as DoubleNumber).toDouble(), (b as DoubleNumber).toDouble())
-                    .typeDouble()
-            }.toTypedArray(),
-        )
-
-        T::class == DoubleNumber::class && F::class == IntNumber::class -> Tensor(
-            shape = this.shape,
-            data = this.data.zip(
-                if (other.shape.contentEquals(this.shape)) {
-                    other
-                } else {
-                    other.broadcast(this.shape)
-                }.data
-            ) { a, b ->
-                typeOperator.doubleWithInt((a as DoubleNumber).toDouble(), (b as IntNumber).toInt()).typeDouble()
-            }.toTypedArray(),
-        )
-
-        else -> throw IllegalArgumentException("Unsupported type")
-    }
 
 /**
  * ## 加法操作实现
@@ -145,7 +9,7 @@ inline fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.tensorWi
  *
  * @author Lightning
  */
-object Plus : TypeOperator {
+object Plus : TwoTypeOperator {
     override val intWithInt = { a: Int, b: Int ->
         a + b
     }
@@ -157,6 +21,18 @@ object Plus : TypeOperator {
     }
     override val doubleWithDouble = { a: Double, b: Double ->
         a + b
+    }
+    override val backwardIntWithInt = { _: Int, _: Int ->
+        { grad: Int -> grad to grad }
+    }
+    override val backwardIntWithDouble = { _: Int, _: Double ->
+        { grad: Double -> grad.toInt() to grad }
+    }
+    override val backwardDoubleWithInt = { _: Double, _: Int ->
+        { grad: Double -> grad to grad.toInt() }
+    }
+    override val backwardDoubleWithDouble = { _: Double, _: Double ->
+        { grad: Double -> grad to grad }
     }
 }
 
@@ -200,7 +76,7 @@ inline operator fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>
  *
  * @author Lightning
  */
-object Minus : TypeOperator {
+object Minus : TwoTypeOperator {
     override val intWithInt = { a: Int, b: Int ->
         a - b
     }
@@ -212,6 +88,18 @@ object Minus : TypeOperator {
     }
     override val doubleWithDouble = { a: Double, b: Double ->
         a - b
+    }
+    override val backwardIntWithInt = { _: Int, _: Int ->
+        { grad: Int -> -grad to -grad }
+    }
+    override val backwardIntWithDouble = { _: Int, _: Double ->
+        { grad: Double -> -grad.toInt() to -grad }
+    }
+    override val backwardDoubleWithInt = { _: Double, _: Int ->
+        { grad: Double -> -grad to -grad.toInt() }
+    }
+    override val backwardDoubleWithDouble = { _: Double, _: Double ->
+        { grad: Double -> -grad to -grad }
     }
 }
 
@@ -255,7 +143,7 @@ inline operator fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>
  *
  * @author Lightning
  */
-object Times : TypeOperator {
+object Times : TwoTypeOperator {
     override val intWithInt = { a: Int, b: Int ->
         a * b
     }
@@ -267,6 +155,18 @@ object Times : TypeOperator {
     }
     override val doubleWithDouble = { a: Double, b: Double ->
         a * b
+    }
+    override val backwardIntWithInt = { a: Int, b: Int ->
+        { grad: Int -> grad * b to grad * b }
+    }
+    override val backwardIntWithDouble = { a: Int, b: Double ->
+        { grad: Double -> (grad * b).toInt() to grad * a }
+    }
+    override val backwardDoubleWithInt = { a: Double, b: Int ->
+        { grad: Double -> grad * b to (grad * a).toInt() }
+    }
+    override val backwardDoubleWithDouble = { a: Double, b: Double ->
+        { grad: Double -> grad * b to grad * a }
     }
 }
 
@@ -310,7 +210,7 @@ inline operator fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>
  *
  * @author Lightning
  */
-object Div : TypeOperator {
+object Div : TwoTypeOperator {
     override val intWithInt = { a: Int, b: Int ->
         a / b
     }
@@ -322,6 +222,18 @@ object Div : TypeOperator {
     }
     override val doubleWithDouble = { a: Double, b: Double ->
         a / b
+    }
+    override val backwardIntWithInt = { a: Int, b: Int ->
+        { grad: Int -> grad / b to grad / b }
+    }
+    override val backwardIntWithDouble = { a: Int, b: Double ->
+        { grad: Double -> (grad / b).toInt() to grad / a }
+    }
+    override val backwardDoubleWithInt = { a: Double, b: Int ->
+        { grad: Double -> grad / b to (grad / a).toInt() }
+    }
+    override val backwardDoubleWithDouble = { a: Double, b: Double ->
+        { grad: Double -> grad / b to grad / a }
     }
 }
 
@@ -357,3 +269,82 @@ inline operator fun <reified T : NumberTypes> Tensor<T>.div(other: Double) =
  */
 inline operator fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.div(other: Tensor<F>): Tensor<NumberTypes> =
     tensorWith(other, Div)
+
+/**
+ * ## 取模操作实现
+ *
+ * 取模操作的具体实现。
+ *
+ * @author Lightning
+ */
+object Mod : TwoTypeOperator {
+    override val intWithInt = { a: Int, b: Int ->
+        a % b
+    }
+    override val intWithDouble = { a: Int, b: Double ->
+        a % b
+    }
+    override val doubleWithInt = { a: Double, b: Int ->
+        a % b
+    }
+    override val doubleWithDouble = { a: Double, b: Double ->
+        a % b
+    }
+    override val backwardIntWithInt = { a: Int, b: Int ->
+        { grad: Int ->
+            // grad_a = grad, grad_b = -grad * (a / b)  (使用整数除法)
+            grad to -(grad * (a / b))
+        }
+    }
+    override val backwardIntWithDouble = { a: Int, b: Double ->
+        { grad: Double ->
+            // grad_a 作为 Int 返回，grad_b 为 Double，floor 使用 double 计算
+            grad.toInt() to -grad * kotlin.math.floor(a.toDouble() / b)
+        }
+    }
+    override val backwardDoubleWithInt = { a: Double, b: Int ->
+        { grad: Double ->
+            // grad_a 为 Double，grad_b 转为 Int
+            grad to -( (grad * kotlin.math.floor(a / b)).toInt() )
+        }
+    }
+    override val backwardDoubleWithDouble = { a: Double, b: Double ->
+        { grad: Double ->
+            // 全为 Double 类型
+            grad to -grad * kotlin.math.floor(a / b)
+        }
+    }
+}
+
+/**
+ * ## Tensor整数标量取模
+ *
+ * Tensor与整数标量取模。
+ *
+ * @param other 整数标量
+ * @return 取模结果
+ */
+inline operator fun <reified T : NumberTypes> Tensor<T>.rem(other: Int) =
+    tensorWith(other, Mod)
+
+/**
+ * ## Tensor浮点标量取模
+ *
+ * Tensor与浮点标量取模。
+ *
+ * @param other 浮点标量
+ * @return 取模结果
+ */
+inline operator fun <reified T : NumberTypes> Tensor<T>.rem(other: Double) =
+    tensorWith(other, Mod)
+
+/**
+ * ## Tensor与Tensor取模
+ *
+ * Tensor与Tensor按元素取模，支持广播机制。
+ *
+ * @param other 另一个Tensor
+ * @return 取模结果
+ */
+inline operator fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.rem(other: Tensor<F>): Tensor<NumberTypes> =
+    tensorWith(other, Mod)
