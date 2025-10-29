@@ -35,14 +35,24 @@ inline fun <reified T : NumberTypes> Tensor<T>.tensorWith(other: Int, typeOperat
             shape = this.shape,
             data = this.data.map { (it as IntNumber).toInt().let { typeOperator.intWithInt(it, other) } }
                 .map { it.typeInt() }.toTypedArray(),
+            backwardFunction = {
+                grad = data
+                    .map { (it as IntNumber).toInt() }
+                    .toIntArray().let { tensorIntOf(*it) } as Tensor<T>?
+            },
+            updateList = updateList.map { it.toIntTensor() } + this.toIntTensor()
         )
-
+        
         DoubleNumber::class -> Tensor(
             shape = this.shape,
             data = this.data.map { (it as DoubleNumber).toDouble().let { typeOperator.doubleWithInt(it, other) } }
                 .map { it.typeDouble() }.toTypedArray(),
+            backwardFunction = {
+                typeOperator.backwardIntWithInt
+            },
+            updateList = updateList.map { it.toDoubleTensor() } + this.toDoubleTensor()
         )
-
+        
         else -> throw IllegalArgumentException("Unsupported type")
     }
 
@@ -62,13 +72,13 @@ inline fun <reified T : NumberTypes> Tensor<T>.tensorWith(other: Double, typeOpe
             data = this.data.map { (it as IntNumber).toInt().let { typeOperator.intWithDouble(it, other) } }
                 .map { it.typeInt() }.toTypedArray(),
         )
-
+        
         DoubleNumber::class -> Tensor(
             shape = this.shape,
             data = this.data.map { (it as DoubleNumber).toDouble().let { typeOperator.doubleWithDouble(it, other) } }
                 .map { it.typeDouble() }.toTypedArray(),
         )
-
+        
         else -> throw IllegalArgumentException("Unsupported type")
     }
 
@@ -97,7 +107,7 @@ inline fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.tensorWi
             ) { a, b -> typeOperator.intWithInt((a as IntNumber).toInt(), (b as IntNumber).toInt()).typeInt() }
                 .toTypedArray(),
         )
-
+        
         T::class == IntNumber::class && F::class == DoubleNumber::class -> Tensor(
             shape = this.shape,
             data = this.data.zip(
@@ -110,7 +120,7 @@ inline fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.tensorWi
                 typeOperator.intWithDouble((a as IntNumber).toInt(), (b as DoubleNumber).toDouble()).typeDouble()
             }.toTypedArray(),
         )
-
+        
         T::class == DoubleNumber::class && F::class == DoubleNumber::class -> Tensor(
             shape = this.shape,
             data = this.data.zip(
@@ -124,7 +134,7 @@ inline fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.tensorWi
                     .typeDouble()
             }.toTypedArray(),
         )
-
+        
         T::class == DoubleNumber::class && F::class == IntNumber::class -> Tensor(
             shape = this.shape,
             data = this.data.zip(
@@ -137,7 +147,7 @@ inline fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.tensorWi
                 typeOperator.doubleWithInt((a as DoubleNumber).toDouble(), (b as IntNumber).toInt()).typeDouble()
             }.toTypedArray(),
         )
-
+        
         else -> throw IllegalArgumentException("Unsupported type")
     }
 
@@ -168,13 +178,13 @@ inline fun <reified T : NumberTypes> Tensor<T>.tensorWith(typeOperator: OneTypeO
             data = this.data.map { (it as IntNumber).toInt().let { typeOperator.int(it) } }
                 .map { it.typeInt() }.toTypedArray(),
         )
-
+        
         DoubleNumber::class -> Tensor(
             shape = this.shape,
             data = this.data.map { (it as DoubleNumber).toDouble().let { typeOperator.double(it) } }
                 .map { it.typeDouble() }.toTypedArray(),
         )
-
+        
         else -> throw IllegalArgumentException("Unsupported type")
     }
 
@@ -197,7 +207,7 @@ inline fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.tensorWi
             ) { a, b -> typeOperator.intWithInt((a as IntNumber).toInt(), (b as IntNumber).toInt()).typeInt() }
                 .toTypedArray(),
         )
-
+        
         T::class == IntNumber::class && F::class == DoubleNumber::class -> Tensor(
             shape = shape,
             data = data.zip(
@@ -206,7 +216,7 @@ inline fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.tensorWi
                 typeOperator.intWithDouble((a as IntNumber).toInt(), (b as DoubleNumber).toDouble()).typeDouble()
             }.toTypedArray(),
         )
-
+        
         T::class == DoubleNumber::class && F::class == DoubleNumber::class -> Tensor(
             shape = this.shape,
             data = data.zip(
@@ -216,7 +226,7 @@ inline fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.tensorWi
                     .typeDouble()
             }.toTypedArray(),
         )
-
+        
         T::class == DoubleNumber::class && F::class == IntNumber::class -> Tensor(
             shape = this.shape,
             data = data.zip(
@@ -225,6 +235,6 @@ inline fun <reified T : NumberTypes, reified F : NumberTypes> Tensor<T>.tensorWi
                 typeOperator.doubleWithInt((a as DoubleNumber).toDouble(), (b as IntNumber).toInt()).typeDouble()
             }.toTypedArray(),
         )
-
+        
         else -> throw IllegalArgumentException("Unsupported type")
     }

@@ -21,6 +21,7 @@ class Tensor<T : NumberTypes>(
     val data: Array<T>,
     val backwardFunction: (Tensor<T>) -> Unit = { },
     val updateList: List<Tensor<T>> = emptyList(),
+    var grad: Tensor<T>? = null,
 )
 
 /**
